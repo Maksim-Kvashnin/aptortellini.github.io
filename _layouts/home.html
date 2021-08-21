@@ -30,10 +30,10 @@ layout: default
             <h3> 
               {{ post.title | escape }}
             </h3>
-            {% if post.subtitle %}
-	            <h5>{{ post.subtitle | escape }}</h5>
-	          {% endif %}
           </a>
+          {% if post.subtitle %}
+	          <h4>{{ post.subtitle | escape }}</h4>
+	        {% endif %}
         {%- if site.show_excerpts -%}
           {{ post.excerpt }}
         {%- endif -%}
