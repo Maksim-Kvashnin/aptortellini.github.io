@@ -1,7 +1,7 @@
 ---
 layout: post
-title: The dying knight in the shiny armour - killing defender while keeping it alive
-subtitle: Killing defender while keeping it alive
+title: The dying knight in the shiny armour
+subtitle: Killing Defender while keeping it alive
 author:
 - last
 ---
