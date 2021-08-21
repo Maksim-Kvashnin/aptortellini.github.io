@@ -6,6 +6,6 @@
 # See: https://jekyllrb.com/docs/themes/#overriding-theme-defaults
 #
 layout: home
-title: APTortellini Blog
+title: APT::WTF - The APTortellini Blog
 ---
 ## Home of the Advanced Persistent Tortellini collective - stay frosty!
