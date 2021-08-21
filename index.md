@@ -6,6 +6,5 @@
 # See: https://jekyllrb.com/docs/themes/#overriding-theme-defaults
 #
 layout: home
-title: _ _
+title: Research from the Advanced Persistent Tortellini collective
 ---
-## Home of the Advanced Persistent Tortellini collective - stay frosty!
