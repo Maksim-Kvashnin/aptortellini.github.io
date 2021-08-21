@@ -1,10 +1,8 @@
 ---
 layout: page
-title: About
+title: cat whoweare.dat
 permalink: /about/
 ---
-
-### Who we are
 We are a bunch of guys interested in offensive stuff. We code, we hack, we take things lightly. Life is too short, steal some SYSTEM tokens :)
 
 ```
