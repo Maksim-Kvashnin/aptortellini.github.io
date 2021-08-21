@@ -1,6 +1,6 @@
 ---
 layout: page
-title: cat whoweare.dat
+title: The Collective
 permalink: /about/
 ---
 We are a bunch of guys interested in offensive stuff. We code, we hack, we take things lightly. Life is too short, steal some SYSTEM tokens :)
