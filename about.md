@@ -3,7 +3,7 @@ layout: page
 title: The Collective
 permalink: /about/
 ---
-We are a bunch of guys interested in offensive stuff. We code, we hack, we take things lightly. Life is too short, steal some SYSTEM tokens :)
+Originally started as a joke made between [Her0](https://twitter.com/Her0), [last](https://twitter.com/last0x00) and [Riccardo](https://twitter.com/dottor_morte), the Advanced Persistent Tortellini group is made of a bunch of Italian guys interested in deeply technical topics and offensive techniques. We code, we hack, we take things lightly. Life is too short, steal some SYSTEM tokens :)
 
 ```
   .#####.   mimikatz 2.2.0 (x64) #17763 Jan 15 2021 09:31:27
@@ -45,14 +45,14 @@ SID               : S-1-5-21-2291914956-3290296217-2402366952-3605
 
 Authentication Id : 0 ; 19845220 (00000000:012ed064)
 Session           : RemoteInteractive from 2
-User Name         : Riccanca
+User Name         : Dottor_Morte
 Domain            : APTWTF
 Logon Server      : DC01
 Logon Time        : 10/8/2019 2:23:06 PM
 SID               : S-1-5-21-4116505479-897374152-2296881962-3606
 	msv :	
 	 [00000003] Primary
-	 * Username : Riccanca
+	 * Username : Dottor_Morte
 	 * Domain   : APTWTF
 	 * NTLM     : 64fbd7e2c5ff6829d298d36f2874f633
 	 * SHA1     : a285362bd5f94c609c728c5c1876d8cb8dbfec5e
