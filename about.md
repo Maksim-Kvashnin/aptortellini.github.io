@@ -3,7 +3,7 @@ layout: page
 title: The Collective
 permalink: /about/
 ---
-Originally started as a joke made between [Her0](https://twitter.com/Her0_IT), [last](https://twitter.com/last0x00) and [Riccardo](https://twitter.com/dottor_morte), the Advanced Persistent Tortellini group is made of a bunch of Italian guys interested in deeply technical topics and offensive techniques. We code, we hack, we take things lightly. Life is too short, steal some SYSTEM tokens :)
+Originally started as a joke made between [Her0](https://twitter.com/Her0_IT), [last](https://twitter.com/last0x00) and [Riccardo](https://twitter.com/dottor_morte), the Advanced Persistent Tortellini group is made of a bunch of Italian guys interested in deeply technical topics and offensive techniques. We code, hack, and publish research here from time to time. Life is too short, steal some SYSTEM tokens :)
 
 ```
   .#####.   mimikatz 2.2.0 (x64) #17763 Jan 15 2021 09:31:27
