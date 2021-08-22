@@ -21,3 +21,9 @@ When using explorer.exe to navigate the folders in the filesystem we use Win32 p
 To make things a bit more complicated, NT paths can make use of NT symbolic links, just as there are symbolic links in Win32 paths. In fact, drive letters like C: and D: are actually NT symbolic links to NT paths: as you can see in the table above, on my machine C: is a NT symbolic link to the NT path \Device\HarddiskVolume4. A number of NT symbolic links is used for various purposes, one of them is to specify the path of certain drivers, like WdFilter for example: by querying it using the CLI we can see the path from which it's loaded:
 
 ![sc.exe qc wdfilter]({{site.baseurl}}/img/wdfilterpath.PNG)
+
+As you can see it's not the one we showed in the table above, as \SystemRoot is a NT symbolic link. Using SysInternals' Winobj.exe we can see that \SystemRoot points to \Device\BootDevice\Windows. \Device\BootDevice is itself another symbolic link to, at least for my machine, \Device\HarddiskVolume4. Like all objects in the Windows kernel, NT symbolic links' security is subordinated to ACL. Let's inspect them:
+
+![symlink acl]({{site.baseurl}}/img/symlinkacl.PNG)
+
+As you can see, SYSTEM (and Administrators) don't have read/write privilege on the NT symbolic link \SystemRoot (although we can query it and see where it points to), but they have the DELETE privilege. Factor in the fact SYSTEM can create new NT symbolic links and you get yourself the ability to actually change the NT symbolic link: just delete it and recreate it pointing it to something you control. The same applies for other NT symbolic links, \Device\BootDevice included.
