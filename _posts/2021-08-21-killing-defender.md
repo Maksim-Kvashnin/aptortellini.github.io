@@ -307,7 +307,7 @@ In the demo you can notice a few things:
 Note: Defender's icon became yellow in the lower right because it was unhappy with me disabling automatic sample submission, it's unrelated to unDefender.
 
 #### References
-1. [](https://twitter.com/jonasLyk/status/1378143191279472644)
-2. [](https://googleprojectzero.blogspot.com/2016/02/the-definitive-guide-on-win32-to-nt.html)
-3. [](https://googleprojectzero.blogspot.com/2018/08/windows-exploitation-tricks-exploiting.html)
-4. [](https://googleprojectzero.blogspot.com/2015/08/windows-10hh-symbolic-link-mitigations.html)
+1. [https://twitter.com/jonasLyk/status/1378143191279472644](https://twitter.com/jonasLyk/status/1378143191279472644)
+2. [https://googleprojectzero.blogspot.com/2016/02/the-definitive-guide-on-win32-to-nt.html](https://googleprojectzero.blogspot.com/2016/02/the-definitive-guide-on-win32-to-nt.html)
+3. [https://googleprojectzero.blogspot.com/2018/08/windows-exploitation-tricks-exploiting.html](https://googleprojectzero.blogspot.com/2018/08/windows-exploitation-tricks-exploiting.html)
+4. [https://googleprojectzero.blogspot.com/2015/08/windows-10hh-symbolic-link-mitigations.html](https://googleprojectzero.blogspot.com/2015/08/windows-10hh-symbolic-link-mitigations.html)
