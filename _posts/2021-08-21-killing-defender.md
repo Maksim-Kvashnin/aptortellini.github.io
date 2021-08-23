@@ -298,7 +298,8 @@ The native function `NtUnloadDriver` gets a single argument, which is a `UNICODE
 #### Reloading and restoring the symlink
 Now that WdFilter has been unloaded, Defender's tamper protection should kick in in a matter of moments and immediately reload it, while also locking it in order to prevent further unloadings. If the symlink has been changed successfully and the directory structure has been created correctly what will be loaded is the driver we provided (which in unDefender's case is RWEverything). Meanwhile, in 10 seconds, unDefender will restore the original symlink by calling ChangeSymlink again and passing it the old symlink target.
 
-![undefender demo]({{site.baseurl}}/img/undefenderdemo.gif)
+![undefender demo]({{site.baseurl}}/img/undefenderdemo.gif)  
+  
 In the demo you can notice a few things:
 - the moment WdFilter is unloaded you can see its entry in Process Hacker turning red;
 - the moment tamper protection kicks in, WdFilter comes right back in green;
