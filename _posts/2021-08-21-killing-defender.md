@@ -303,7 +303,8 @@ Now that WdFilter has been unloaded, Defender's tamper protection should kick in
 In the demo you can notice a few things:
 - the moment WdFilter is unloaded you can see its entry in Process Hacker turning red;
 - the moment tamper protection kicks in, WdFilter comes right back in green;
-- I managed to copy and run Mimikatz without Defender complaining.
+- I managed to copy and run Mimikatz without Defender complaining.  
+
 Note: Defender's icon became yellow in the lower right because it was unhappy with me disabling automatic sample submission, it's unrelated to unDefender.
 
 #### References
