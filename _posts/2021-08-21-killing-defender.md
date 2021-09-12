@@ -20,17 +20,17 @@ When using `explorer.exe` to navigate the folders in the filesystem we use Win32
   
 To make things a bit more complicated, NT paths can make use of NT symbolic links, just as there are symbolic links in Win32 paths. In fact, drive letters like `C:` and `D:` are actually NT symbolic links to NT paths: as you can see in the table above, on my machine `C:` is a NT symbolic link to the NT path `\Device\HarddiskVolume4`. Several NT symbolic links are used for various purposes, one of them is to specify the path of certain drivers, like WdFilter for example: by querying it using the CLI we can see the path from which it's loaded:
 
-![sc.exe qc wdfilter]({{site.baseurl}}/img/wdfilterpath.PNG)
+[![sc.exe qc wdfilter]({{site.baseurl}}/img/wdfilterpath.PNG)]({{site.baseurl}}/img/wdfilterpath.PNG)
 
 As you can see it's not exactly the one we showed in the table above, as `\SystemRoot` is a NT symbolic link. Using SysInternals' Winobj.exe we can see that `\SystemRoot` points to `\Device\BootDevice\Windows`. `\Device\BootDevice` is itself another symbolic link to, at least for my machine, `\Device\HarddiskVolume4`. Like all objects in the Windows kernel, NT symbolic links' security is subordinated to ACL. Let's inspect them:
 
-![symlink acl]({{site.baseurl}}/img/symlinkacl.PNG)
+[![symlink acl]({{site.baseurl}}/img/symlinkacl.PNG)]({{site.baseurl}}/img/symlinkacl.PNG)
 
 SYSTEM (and Administrators) don't have READ/WRITE privilege on the NT symbolic link `\SystemRoot` (although we can query it and see where it points to), but they have the DELETE privilege. Factor in the fact SYSTEM can create new NT symbolic links and you get yourself the ability to actually change the NT symbolic link: just delete it and recreate it pointing it to something you control. The same applies for other NT symbolic links, `\Device\BootDevice` included. To actually rewrite this kind of symbolic link we need to use native APIs as there are no Win32 APIs for that.
 ### The code
 I'll walk you through some code snippets from our project [unDefender](https://github.com/APTortellini/unDefender) which abuses this behaviour. Here's a flowchart of how the different pieces of the software work:
 
-![unDefender flowchart]({{site.baseurl}}/img/undefenderFlowchart.PNG)
+[![unDefender flowchart]({{site.baseurl}}/img/undefenderFlowchart.PNG)]({{site.baseurl}}/img/undefenderFlowchart.PNG)
 
 All the functions used in the program are defined in the `common.h` header. Here you will also find definitions of the Nt functions I had to dynamically load from `ntdll`. Note that I wrap the `HANDLE`, `HMODULE` and `SC_HANDLE` types in custom types part of the RAII namespace as I heavily rely on C++'s [RAII paradigm](https://en.wikipedia.org/wiki/Resource_acquisition_is_initialization) in order to safely handle these types. These custom RAII types are defined in the `raii.h` header and implemented in their respective `.cpp` files.
 ### Getting SYSTEM
