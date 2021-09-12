@@ -245,11 +245,11 @@
 .post-title,
 .post-content h1 {
   @include relative-font-size(2.625);
-  letter-spacing: -1px;
+  //letter-spacing: -1px;
   line-height: 1.15;
   color: #bf0000;
   font-family: "Space Grotesk Regular", "Space Grotesk", sans-serif;
-  //font-weight: bold;
+  font-weight: bold;
   text-align: left;
 
   @media screen and (min-width: $on-large) {
