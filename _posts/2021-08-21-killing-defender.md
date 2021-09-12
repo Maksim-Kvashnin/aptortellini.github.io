@@ -5,11 +5,11 @@ subtitle: Killing Defender through NT symbolic links redirection while keeping i
 author:
 - last
 ---
-### TL;DR
+#### TL;DR
 With Administrator level privileges and without interacting with the GUI, it's possible to prevent Defender from doing its job while keeping it alive and without disabling tamper protection by redirecting the `\Device\BootDevice` NT symbolic link which is part of the NT path from where Defender's WdFilter driver binary is loaded. This can also be used to make Defender load an arbitrary driver, which no tool succeeds in locating, but it does not survive reboots. The code to do that is in APTortellini's Github repository [unDefender](https://github.com/APTortellini/unDefender).
-### Introduction
+#### Introduction
 Some time ago I had a chat with [jonasLyk](https://twitter.com/jonasLyk) of the [Secret Club](https://secret.club) hacker collective about [a technique he devised](https://twitter.com/jonasLyk/status/1378143191279472644) to disable Defender without making it obvious it was disabled and/or invalidating its tamper protection feature. What I liked about this technique was that it employed some really clever NT symbolic links shenanigans I'll try to outline in this blog post (which, coincidentally, is also the first one of the [Advanced Persistent Tortellini](https://aptw.tf/about/) collective :D). Incidentally, this techniques makes for a great way to hide a rootkit inside a Windows system, as Defender can be tricked into loading an arbitrary driver (that, sadly, has to be signed) and no tool is able to pinpoint it, as you'll be able to see in a while. Grab a beer, and enjoy the ride lads!
-### Win32 paths, NT paths and NT symbolic links
+#### Win32 paths, NT paths and NT symbolic links
 When loading a driver in Windows there are two ways of specifying where on the filesystem the driver binary is located: Win32 paths and NT paths. A complete analysis of the subtle differences between these two kinds of paths is out of the scope of this article, but [James Forshaw already did a great job at explaining it](https://googleprojectzero.blogspot.com/2016/02/the-definitive-guide-on-win32-to-nt.html). Essentially, Win32 paths are a dumbed-down version of the more complete NT paths and heavily rely on NT symbolic links. Win32 paths are the familiar path we all use everyday, the ones with letter drives, while NT paths use a different tree structure on which Win32 paths are mapped. Let's look at WdFilter's specific example:
 
 | Win32 path                                 | NT Path                                                         |
@@ -27,13 +27,13 @@ As you can see it's not exactly the one we showed in the table above, as `\Syste
 ![symlink acl]({{site.baseurl}}/img/symlinkacl.PNG)
 
 SYSTEM (and Administrators) don't have READ/WRITE privilege on the NT symbolic link `\SystemRoot` (although we can query it and see where it points to), but they have the DELETE privilege. Factor in the fact SYSTEM can create new NT symbolic links and you get yourself the ability to actually change the NT symbolic link: just delete it and recreate it pointing it to something you control. The same applies for other NT symbolic links, `\Device\BootDevice` included. To actually rewrite this kind of symbolic link we need to use native APIs as there are no Win32 APIs for that.
-### The code
+#### The code
 I'll walk you through some code snippets from our project [unDefender](https://github.com/APTortellini/unDefender) which abuses this behaviour. Here's a flowchart of how the different pieces of the software work:
 
 ![unDefender flowchart]({{site.baseurl}}/img/undefenderFlowchart.PNG)
 
 All the functions used in the program are defined in the `common.h` header. Here you will also find definitions of the Nt functions I had to dynamically load from `ntdll`. Note that I wrap the `HANDLE`, `HMODULE` and `SC_HANDLE` types in custom types part of the RAII namespace as I heavily rely on C++'s [RAII paradigm](https://en.wikipedia.org/wiki/Resource_acquisition_is_initialization) in order to safely handle these types. These custom RAII types are defined in the `raii.h` header and implemented in their respective `.cpp` files.
-### Getting SYSTEM
+#### Getting SYSTEM
 First things first, we elevate our token to a SYSTEM one. This is easily done through the `GetSystem` function, implemented in the `GetSystem.cpp` file. Here we basically open `winlogon.exe`, a SYSTEM process running unprotected in every Windows session,  using the `OpenProcess` API. After that we open its token, through `OpenProcessToken`, and impersonate it using `ImpersonateLoggedOnUser`, easy peasy. 
 
 ```C++
@@ -69,7 +69,7 @@ bool GetSystem()
 	return success;
 }
 ```
-### Saving the symbolic link current state
+#### Saving the symbolic link current state
 After getting SYSTEM we need to backup the current state of the symbolic link, so that we can programmatically restore it later. This is done through the `GetSymbolicLinkTarget` implemented in the `GetSymbolicLinkTarget.cpp` file. After resolving the address of the Nt functions (skipped in the following snippet) we define two key data structures: a `UNICODE_STRING` and an `OBJECT_ATTRIBUTES`. These two are initialized through the `RtlInitUnicodeString` and `InitializeObjectAttributes` APIs. The `UNICODE_STRING` is initialized using the `symLinkName` variable, which is of type `std::wstring` and is one of the arguments passed to `GetSymbolicLinkTarget` by the main function. The first one is a structure the Windows kernel uses to work with unicode strings (duh!) and is necessary for initializing the second one, which in turn is used to open a handle to the NT symlink using  the `NtOpenSymbolicLinkObject` native API with `GENERIC_READ` access. Before that though we define a `HANDLE` which will be filled by `NtOpenSymbolicLinkObject` itself and that we will assign to the corresponding RAII type (I have yet to implement a way of doing it directly without using a temporary disposable variable, I'm lazy).
 
 Done that we proceed to initialize a second `UNICODE_STRING` which will be used to store the symlink target retrieved by  the `NtQuerySymbolicLinkObject` native API, which takes as arguments the `RAII::Handle` we initialized before, the second `UNICODE_STRING` we just initialized and a `nullptr` as we don't care about the number of bytes read. Done that we return the buffer of the second `UNICODE_STRING` and call it a day.
@@ -100,7 +100,7 @@ else std::wcout << "[+] Symbolic link target is: " << LinkTarget.Buffer << std::
 return LinkTarget.Buffer;
 ```
 
-### Changing the symbolic link
+#### Changing the symbolic link
 Now that we have stored the older symlink target it's time we change it. To do so we once again setup the two `UNICODE_STRING` and `OBJECT_ATTRIBUTES` structures that will identify the symlink we want to target and then call the native function `NtOpenSymbolicLink` to get a handle to said symlink with `DELETE` privileges.
 
 ```C++
@@ -295,7 +295,7 @@ else
 return status;
 ```
 The native function `NtUnloadDriver` gets a single argument, which is a `UNICODE_STRING` containing the driver's registry path (which is a NT path, as `\Registry` can be seen using WinObj). If everything went according to plan, WdFilter has been unloaded from the kernel.
-### Reloading and restoring the symlink
+#### Reloading and restoring the symlink
 Now that WdFilter has been unloaded, Defender's tamper protection should kick in in a matter of moments and immediately reload it, while also locking it in order to prevent further unloadings. If the symlink has been changed successfully and the directory structure has been created correctly what will be loaded is the driver we provided (which in unDefender's case is RWEverything). Meanwhile, in 10 seconds, unDefender will restore the original symlink by calling ChangeSymlink again and passing it the old symlink target.
 
 ![undefender demo]({{site.baseurl}}/img/undefenderdemo.gif)  
@@ -306,7 +306,7 @@ In the demo you can notice a few things:
 - I managed to copy and run Mimikatz without Defender complaining.
 Note: Defender's icon became yellow in the lower right because it was unhappy with me disabling automatic sample submission, it's unrelated to unDefender.
 
-### References
+#### References
 1. [https://twitter.com/jonasLyk/status/1378143191279472644](https://twitter.com/jonasLyk/status/1378143191279472644)
 2. [https://googleprojectzero.blogspot.com/2016/02/the-definitive-guide-on-win32-to-nt.html](https://googleprojectzero.blogspot.com/2016/02/the-definitive-guide-on-win32-to-nt.html)
 3. [https://googleprojectzero.blogspot.com/2018/08/windows-exploitation-tricks-exploiting.html](https://googleprojectzero.blogspot.com/2018/08/windows-exploitation-tricks-exploiting.html)
