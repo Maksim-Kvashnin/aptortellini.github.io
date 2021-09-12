@@ -11,7 +11,7 @@ This is a repost of an analysis I posted on my Gitbook some time ago. Basically,
 ### Introduction
 Last August [FuzzySec](https://twitter.com/FuzzySec) tweeted [something interesting](https://twitter.com/FuzzySec/status/1292495775512113152):
 
-![fuzzysec tweet]({{site.baseurl}}/img/fuzzysectweet.PNG)
+[![fuzzysec tweet]({{site.baseurl}}/img/fuzzysectweet.PNG)]({{site.baseurl}}/img/fuzzysectweet.PNG)
 
 Since I had some spare time I decided to look into it and try and write my own local password dumping utility. But first, I had to confirm this information.
 
@@ -22,7 +22,7 @@ To do so, I fired up a Windows 10 20H2 VM, set it up for kernel debugging and se
 !process 0 0 lsass.exe
 ```
 
-![process command]({{site.baseurl}}/img/processcommand.png)
+[![process command]({{site.baseurl}}/img/processcommand.png)]({{site.baseurl}}/img/processcommand.png)
 
 Once the `_EPROCESS` address is found we have to switch WinDbg's context to the target process (your address will be different):
 
@@ -30,7 +30,7 @@ Once the `_EPROCESS` address is found we have to switch WinDbg's context to the 
 .process /i /p /r ffff8c05c70bc080
 ```
 
-![process command 2]({{site.baseurl}}/img/processcommand2.png)
+[![process command 2]({{site.baseurl}}/img/processcommand2.png)]({{site.baseurl}}/img/processcommand2.png)
 
 Remember to use the `g` command right after the last command to make the switch actually happen. Now that we are in LSASS' context we can load into the debugger the user mode symbols, since we are in kernel debugging, and then place a breakpoint at `NtlmShared!MsvpPasswordValidate`:
 
@@ -41,7 +41,7 @@ bp NtlmShared!MsvpPasswordValidate
 
 We can make sure our breakpoint has been set by using the `bl` command:
 
-![bl command]({{site.baseurl}}/img/blcommand.png)
+[![bl command]({{site.baseurl}}/img/blcommand.png)]({{site.baseurl}}/img/blcommand.png)
 
 
 Before we go on however we need to know what to look for. `MsvpPasswordValidate` is an undocumented function, meaning we won't find it's definition on MSDN. Looking here and there on the interwebz I managed to find it on multiple websites, so here it is:
@@ -71,11 +71,11 @@ typedef struct _SAMPR_USER_INTERNAL1_INFORMATION {
 
 As `MsvpPasswordValidate` uses the `stdcall` calling convention, we know the Passwords argument will be stored into the R9 register, hence we can get to the actual structure by dereferencing the content of this register. With this piece of information we type `g` once more in our debugger and attempt a login through the runas command:
 
-![runas command]({{site.baseurl}}/img/runas.gif)
+[![runas command]({{site.baseurl}}/img/runas.gif)]({{site.baseurl}}/img/runas.gif)
 
 And right there our VM froze because we hit the breakpoint we previously set:
 
-![breakpoint hit]({{site.baseurl}}/img/breakpoint.png)
+[![breakpoint hit]({{site.baseurl}}/img/breakpoint.png)]({{site.baseurl}}/img/breakpoint.png)
 
 Now that our CPU is where we want it to be we can check the content of R9:
 
@@ -83,7 +83,7 @@ Now that our CPU is where we want it to be we can check the content of R9:
 db @r9
 ```
 
-![db command]({{site.baseurl}}/img/dbr9.png)
+[![db command]({{site.baseurl}}/img/dbr9.png)]({{site.baseurl}}/img/dbr9.png)
 
 That definetely looks like a hash! We know our test user uses "antani" as password and its NT hash is `1AC1DBF66CA25FD4B5708E873E211F06`, so the extracted value is the correct one. 
 
@@ -336,7 +336,7 @@ This function too relies on Detours magic. As you can see lines 6 to 9 are very 
 ### Test drive!
 Alright, now that everything is ready we can proceed to compile the DLL and inject it into LSASS. For rapid prototyping I used Process Hacker for the injection.
 
-![hppdll gif]({{site.baseurl}}/img/hppdll.gif)
+[![hppdll gif]({{site.baseurl}}/img/hppdll.gif)]({{site.baseurl}}/img/hppdll.gif)
 
 It works! This time I tried to authenticate as the user "last", whose password is, awkwardly, "last".  You can see that even though the wrong password was input for the user, the true password hash has been written to `C:\credentials`.
 That's all folks, it was a nice ride. You can find [the complete code for HppDLL on my GitHub](https://github.com/last-byte/HppDLL).  
