@@ -183,7 +183,7 @@ if (!success && GetLastError() != 0x420) // 0x420 is the error code returned whe
 }
 else std::cout << "[+] Successfully started the TrustedInstaller service!\n";
 ```
-##### Step 2 - Open TrustedInstaller's first thread
+##### Step 2 - Opening TrustedInstaller's first thread
 Now that the TrustedInstaller process is alive, we need to open a handle its first thread, so that we can call  the native API `NtImpersonateThread` on it in step 3. This is done using the following code:
 ```C++
 auto trustedInstPid = FindPID(L"TrustedInstaller.exe");
@@ -209,7 +209,7 @@ if (!hTrustedInstThread.GetHandle())
 else std::cout << "[+] Opened a THREAD_DIRECT_IMPERSONATION handle to the TrustedInstaller process' first thread!\n";
 ```
 `FindPID` and `GetFirstThreadID` are two helper functions I implemented in `FindPID.cpp` and `GetFirstThreadID.cpp` which do exactly what their names tell you: they find the PID of the process you pass them and give you the TID of its first thread, easy. We need the first thread as it will have for sure the `NT SERVICE\TrustedInstaller` SID in it. Once we've got the thread ID we pass it to the `OpenThread` API with the `THREAD_DIRECT_IMPERSONATION` access right, which enables us to use the returned handle with `NtImpersonateThread` later.
-##### Step 3 - Impersonate TrustedInstaller
+##### Step 3 - Impersonating TrustedInstaller
 Now that we have a powerful enough handle we can call `NtImpersonateThread` on it. But first we have to initialize a `SECURITY_QUALITY_OF_SERVICE` data structure to tell the kernel which kind of impersonation we want to perform, in this case `SecurityImpersonation`, that's a impersonation level which allows us to impersonate the security context of our target locally ([look here for more information on Impersonation Levels](https://docs.microsoft.com/en-us/windows/win32/secauthz/impersonation-levels)):
 ```C++
 SECURITY_QUALITY_OF_SERVICE sqos = {};
