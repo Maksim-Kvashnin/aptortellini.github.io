@@ -255,8 +255,9 @@
 .post-content {
   margin-bottom: $spacing-unit;
 
-  h1, h2, h3 { margin-top: $spacing-unit * 2; color: #820105 }
-  h4, h5, h6 { margin-top: $spacing-unit; color: #820105 }
+  h1, h2, h3 { margin-top: $spacing-unit * 2; color: #c6040a; font-weight: bold }
+  h4, h5, h6 { margin-top: $spacing-unit; color: #c6040a; font-weight: bold }
+  
 
   h2 {
     @include relative-font-size(1.75);
