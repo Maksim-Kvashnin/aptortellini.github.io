@@ -247,8 +247,8 @@
   letter-spacing: -1px;
   line-height: 1.15;
   color: #ff0000;
-  font-family: "Alegreya Bold", "Alegreya", sans-serif;
-  //font-weight: bold;
+  font-family: "Share Tech Regular", "Share Tech", sans-serif;
+  font-weight: bold;
 
   @media screen and (min-width: $on-large) {
     @include relative-font-size(2.625);
@@ -261,9 +261,13 @@
   //h1, h2, h3 { margin-top: $spacing-unit * 2; color: #630004; font-weight: bold }
   h1, h2, h3, h4, h5, h6 { 
     color: #ff0000; 
-    font-family: "Alegreya Bold", "Alegreya", sans-serif; 
+    font-family: "Share Tech Regular", "Share Tech", sans-serif; 
     font-weight: bold;
   }
+  
+  h1::before, h2::before, h3::before, h4::before, h5::before, h6::before {
+    content: "# ";
+  } 
   //h4, h5, h6 { margin-top: $spacing-unit; color: #5c0004; font-weight: bold }
 
 
