@@ -8,6 +8,7 @@ author:
 #### TL;DR
 This is a repost of an analysis I posted on my Gitbook some time ago. Basically, when you authenticate as ANY local user on Windows, the NT hash of that user is checked against the NT hash of the supplied password by LSASS through the function `MsvpPasswordValidate`, exported by NtlmShared.dll. If you hook `MsvpPasswordValidate` you can extract this hash without touching the SAM. Of course, to hook this function in LSASS you need admin privilege. Technically it also works for domain users who have logged on the machine at least once, but the resulting hash is not a NT hash, but rather a MSCACHEv2 hash.
 
+#### Introduction
 Last August [FuzzySec](https://twitter.com/FuzzySec) tweeted [something interesting](https://twitter.com/FuzzySec/status/1292495775512113152):
 
 ![fuzzysec tweet]({{site.baseurl}}/img/fuzzysectweet.PNG)
