@@ -246,7 +246,7 @@
   @include relative-font-size(2.625);
   letter-spacing: -1px;
   line-height: 1.15;
-  color: #630004;
+  color: #ff0000;
   font-family: "Alegreya Bold", "Alegreya", sans-serif;
   //font-weight: bold;
 
@@ -260,7 +260,7 @@
 
   //h1, h2, h3 { margin-top: $spacing-unit * 2; color: #630004; font-weight: bold }
   h1, h2, h3, h4, h5, h6 { 
-    color: #630004; 
+    color: #ff0000; 
     font-family: "Alegreya Bold", "Alegreya", sans-serif; 
     font-weight: bold;
   }
