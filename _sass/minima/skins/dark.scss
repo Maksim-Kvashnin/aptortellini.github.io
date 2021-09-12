@@ -93,3 +93,6 @@ $table-border-color:    $border-color-01 !default;
   .vi    { color: #EEFFFF } // Name.Variable.Instance
   .il    { color: #F78C6C } // Literal.Number.Integer.Long
 }
+
+h1, h2, h3 { margin-top: $spacing-unit * 2; color: #820105 }
+h4, h5, h6 { margin-top: $spacing-unit; color: #820105 }
