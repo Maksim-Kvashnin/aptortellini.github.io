@@ -25,6 +25,9 @@ minima:
 header_pages:
  - about.md
 
+markdown: kramdown
+highlighter: rouge
+    input: GFM
 # Build settings
 theme: minima
 
