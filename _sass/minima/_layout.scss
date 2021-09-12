@@ -250,6 +250,7 @@
   color: #bf0000;
   font-family: "Ubuntu Mono Regular", "Ubuntu Mono", sans-serif;
   font-weight: bold;
+  text-align: left;
 
   @media screen and (min-width: $on-large) {
     @include relative-font-size(2.625);
@@ -264,6 +265,7 @@
     color: #bf0000; 
     font-family: "Ubuntu Mono Regular", "Ubuntu Mono", sans-serif; 
     font-weight: bold;
+    text-align: left;
   }
   
   h1::before, h2::before, h3::before, h4::before, h5::before, h6::before {
