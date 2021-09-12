@@ -5,7 +5,7 @@ subtitle: Extracting local hashes by hooking functions inside LSASS
 author:
 - last
 ---
-### TL;DR
+#### TL;DR
 This is a repost of an analysis I posted on my Gitbook some time ago. Basically, when you authenticate as ANY local user on Windows, the NT hash of that user is checked against the NT hash of the supplied password by LSASS through the function `MsvpPasswordValidate`, exported by NtlmShared.dll. If you hook `MsvpPasswordValidate` you can extract this hash without touching the SAM. Of course, to hook this function in LSASS you need admin privilege. Technically it also works for domain users who have logged on the machine at least once, but the resulting hash is not a NT hash, but rather a MSCACHEv2 hash.
 
 Last August [FuzzySec](https://twitter.com/FuzzySec) tweeted [something interesting](https://twitter.com/FuzzySec/status/1292495775512113152):
@@ -14,7 +14,7 @@ Last August [FuzzySec](https://twitter.com/FuzzySec) tweeted [something interest
 
 Since I had some spare time I decided to look into it and try and write my own local password dumping utility. But first, I had to confirm this information.
 
-### Confirming the information
+#### Confirming the information
 To do so, I fired up a Windows 10 20H2 VM, set it up for kernel debugging and set a breakpoint into lsass.exe at the start of MsvpPasswordValidate (part of the NtlmShared.dll library) through WinDbg. But first you have to find LSASS' _EPROCESS address using the following command:
 
 ```
@@ -86,7 +86,7 @@ db @r9
 
 That definetely looks like a hash! We know our test user uses "antani" as password and its NT hash is `1AC1DBF66CA25FD4B5708E873E211F06`, so the extracted value is the correct one. 
 
-### Writing the DLL
+#### Writing the DLL
 Now that we have verified FuzzySec's hint we can move on to write our own password dumping utility. We will write a custom DLL which will hook `MsvpPasswordValidate`, extract the hash and write it to disk. This DLL will be called HppDLL, since I will integrate it in a tool I already made (and which I will publish sooner or later) called HashPlusPlus (HPP for short). We will be using Microsoft Detours to perform the hooking action, __better not to use manual hooking when dealing with critical processes like LSASS, as crashing will inevitably lead to a reboot__. I won't go into details on how to compile Detours and set it up, it's pretty straightforward and I will include a compiled Detours library into HppDLL's repository.
 The idea here is to have the DLL hijack the execution flow as soon as it reaches `MsvpPasswordValidate`, jump to a rogue routine which we will call `HookMSVPPValidate` and that will be responsible for extracting the credentials. Done that, `HookMSVPPValidate` will return to the legitimate `MsvpPasswordValidate` and continue the execution flow transparently for the calling process. Complex? Not so much actually. 
 
@@ -332,7 +332,7 @@ bool RemoveHook()
 
 This function too relies on Detours magic. As you can see lines 6 to 9 are very similar to the ones called by `InstallHook` to inject our hook, the only difference is that we make use of the `DetourDetach` function instead of the `DetourAttach` one.
 
-### Test drive!
+#### Test drive!
 Alright, now that everything is ready we can proceed to compile the DLL and inject it into LSASS. For rapid prototyping I used Process Hacker for the injection.
 
 ![hppdll gif]({{site.baseurl}}/img/hppdll.gif)
