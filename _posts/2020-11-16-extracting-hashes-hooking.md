@@ -45,7 +45,7 @@ We can make sure our breakpoint has been set by using the `bl` command:
 
 
 Before we go on however we need to know what to look for. `MsvpPasswordValidate` is an undocumented function, meaning we won't find it's definition on MSDN. Looking here and there on the interwebz I managed to find it on multiple websites, so here it is:
-```C++
+```c++
 BOOLEAN __stdcall MsvpPasswordValidate (
      BOOLEAN UasCompatibilityRequired,
      NETLOGON_LOGON_INFO_CLASS LogonLevel,
@@ -59,7 +59,7 @@ BOOLEAN __stdcall MsvpPasswordValidate (
 
 What we are looking for is the fourth argument. The "Passwords" argument is of type `PUSER_INTERNAL1_INFORMATION`. This is a pointer to a `SAMPR_USER_INTERNAL1_INFORMATION` structure, whose first member is the NT hash we are looking for:
 
-```C++
+```c++
 typedef struct _SAMPR_USER_INTERNAL1_INFORMATION {
    ENCRYPTED_NT_OWF_PASSWORD EncryptedNtOwfPassword;
    ENCRYPTED_LM_OWF_PASSWORD EncryptedLmOwfPassword;
@@ -94,7 +94,7 @@ The idea here is to have the DLL hijack the execution flow as soon as it reaches
 ##### Hppdll.h
 We start off by writing the header all of the code pieces will include:
 
-```C++
+```c++
 #pragma once
 #define SECURITY_WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -173,7 +173,7 @@ I also define a `pMsvpPasswordValidate` type which we will use in conjunction wi
 ##### DllMain.cpp
 The DllMain.cpp file holds the definition and declaration of the `DllMain` function, responsible for all the actions that will be taken when the DLL is loaded or unloaded:
 
-```C++
+```c++
 #include "pch.h"
 #include "hppdll.h"
 
@@ -204,7 +204,7 @@ Top to bottom, we include `pch.h` to enable precompiled headers and speed up com
 ##### InstallHook.cpp
 InstallHook is the function responsible for actually injecting our hook:
 
-```C++
+```c++
 #include "pch.h"
 #include "hppdll.h"
 
@@ -253,7 +253,7 @@ You may have noticed I use the `DEBUG` macro to print debug information. This ma
 ##### HookMSVPPValidate.cpp
 Here comes the most important piece of the DLL, the routine responsible for extracting the credentials from memory.
 
-```C++
+```c++
 #include "pch.h"
 #include "hppdll.h"
 
@@ -293,7 +293,7 @@ BOOLEAN HookMSVPPValidate(BOOLEAN UasCompatibilityRequired, NETLOGON_LOGON_INFO_
 
 We want our output file to contain information on the user (like the username and the machine name) and his NT hash. To do so we first cast the third argument, `LogonIdentity`, to be a pointer to a `NETLOGON_LOGON_IDENTITY_INFO` structure. From that we extract the `logonIdentity->LogonDomainName.Buffer` field, which holds the local domain (hece the machine hostname since it's a local account). This happens at line 8. At line 13 we write the extracted local domain name to the output file, which is `C:\credentials.txt`. As a side note, `LogonDomainName` is a `UNICODE_STRING` structure, defined like so:
 
-```C++
+```c++
 typedef struct _UNICODE_STRING {
   USHORT Length;
   USHORT MaximumLength;
@@ -308,7 +308,7 @@ To finish we proceed to call the actual `MsvpPasswordValidate` and return its re
 ##### RemoveHook.cpp
 The last function we will take a look at is the RemoveHook function.
 
-```C++
+```c++
 #include "pch.h"
 #include "hppdll.h"
 
