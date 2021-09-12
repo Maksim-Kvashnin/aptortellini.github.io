@@ -1,11 +1,12 @@
 #### TL;DR
 This is a repost of an analysis I posted on my [gitbook](https://offnotes.notso.pro/abusing-credentials/dumping-credentials/msvppasswordvalidate-hook) some time ago. Basically, when you authenticate as ANY local user on Windows, the NT hash of that user is checked against the NT hash of the supplied password by LSASS through the function `MsvpPasswordValidate`, exported by NtlmShared.dll. If you hook `MsvpPasswordValidate` you can extract this hash without touching the SAM. Of course, to hook this function in LSASS you need admin privilege. Technically it also works for domain users who have logged on the machine at least once, but the resulting hash is not a NT hash, but rather a MSCACHEv2 hash.
 
-Last August [@FuzzySec](https://twitter.com/FuzzySec) tweeted something interesting:
+Last August [FuzzySec](https://twitter.com/FuzzySec) tweeted [something interesting](https://twitter.com/FuzzySec/status/1292495775512113152):
 
-<a href=https://twitter.com/FuzzySec/status/1292495775512113152> ![fuzzysec tweet]({{site.baseurl}}/img/fuzzysectweet.PNG) </a>
+![fuzzysec tweet]({{site.baseurl}}/img/fuzzysectweet.PNG)
 
 Since I had some spare time I decided to look into it and try and write my own local password dumping utility. But first, I had to confirm this information.
+
 #### Confirming the information
 To do so, I fired up a Windows 10 20H2 VM, set it up for kernel debugging and set a breakpoint into lsass.exe at the start of MsvpPasswordValidate (part of the NtlmShared.dll library) through WinDbg. But first you have to find LSASS' _EPROCESS address using the following command:
 
