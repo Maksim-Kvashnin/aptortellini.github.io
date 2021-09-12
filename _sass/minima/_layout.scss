@@ -258,9 +258,9 @@
   margin-bottom: $spacing-unit;
 
   //h1, h2, h3 { margin-top: $spacing-unit * 2; color: #630004; font-weight: bold }
-  h1, h2, h3 { color: #630004; font-weight: bold }
+  h1, h2, h3 { color: #630004; }
   //h4, h5, h6 { margin-top: $spacing-unit; color: #5c0004; font-weight: bold }
-  h4, h5, h6 { color: #630004; font-weight: bold }  
+  h4, h5, h6 { color: #630004; }  
 
   h2 {
     @include relative-font-size(1.75);
