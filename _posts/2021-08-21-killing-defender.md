@@ -16,7 +16,7 @@ When loading a driver in Windows there are two ways of specifying where on the f
 | :----------------------------------------- | :-------------------------------------------------------------- |
 | C:\Temp\test.txt| \Device\HarddiskVolume4\Temp\test.txt|
 
-When using `explorer.exe` to navigate the folders in the filesystem we use Win32 paths and in fact the path you see in the table above is exactly the path in which you can find `WdFilter.sys`, though it's just an abstraction layer as the kernel uses NT paths to work and Win32 paths are translated to NT paths before being consumed by the OS.  
+When using `explorer.exe` to navigate the folders in the filesystem we use Win32 paths, though it's just an abstraction layer as the kernel uses NT paths to work and Win32 paths are translated to NT paths before being consumed by the OS.  
   
 To make things a bit more complicated, NT paths can make use of NT symbolic links, just as there are symbolic links in Win32 paths. In fact, drive letters like `C:` and `D:` are actually NT symbolic links to NT paths: as you can see in the table above, on my machine `C:` is a NT symbolic link to the NT path `\Device\HarddiskVolume4`. Several NT symbolic links are used for various purposes, one of them is to specify the path of certain drivers, like WdFilter for example: by querying it using the CLI we can see the path from which it's loaded:
 
