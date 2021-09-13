@@ -10,11 +10,11 @@ With Administrator level privileges and without interacting with the GUI, it's p
 ### Introduction
 Some time ago I had a chat with [jonasLyk](https://twitter.com/jonasLyk) of the [Secret Club](https://secret.club) hacker collective about [a technique he devised](https://twitter.com/jonasLyk/status/1378143191279472644) to disable Defender without making it obvious it was disabled and/or invalidating its tamper protection feature. What I liked about this technique was that it employed some really clever NT symbolic links shenanigans I'll try to outline in this blog post (which, coincidentally, is also the first one of the [Advanced Persistent Tortellini](https://aptw.tf/about/) collective :D). Incidentally, this techniques makes for a great way to hide a rootkit inside a Windows system, as Defender can be tricked into loading an arbitrary driver (that, sadly, has to be signed) and no tool is able to pinpoint it, as you'll be able to see in a while. Grab a beer, and enjoy the ride lads!
 ### Win32 paths, NT paths and NT symbolic links
-When loading a driver in Windows there are two ways of specifying where on the filesystem the driver binary is located: Win32 paths and NT paths. A complete analysis of the subtle differences between these two kinds of paths is out of the scope of this article, but [James Forshaw already did a great job at explaining it](https://googleprojectzero.blogspot.com/2016/02/the-definitive-guide-on-win32-to-nt.html). Essentially, Win32 paths are a dumbed-down version of the more complete NT paths and heavily rely on NT symbolic links. Win32 paths are the familiar path we all use everyday, the ones with letter drives, while NT paths use a different tree structure on which Win32 paths are mapped. Let's look at WdFilter's specific example:
+When loading a driver in Windows there are two ways of specifying where on the filesystem the driver binary is located: Win32 paths and NT paths. A complete analysis of the subtle differences between these two kinds of paths is out of the scope of this article, but [James Forshaw already did a great job at explaining it](https://googleprojectzero.blogspot.com/2016/02/the-definitive-guide-on-win32-to-nt.html). Essentially, Win32 paths are a dumbed-down version of the more complete NT paths and heavily rely on NT symbolic links. Win32 paths are the familiar path we all use everyday, the ones with letter drives, while NT paths use a different tree structure on which Win32 paths are mapped. Let's look at an example:
 
 | Win32 path                                 | NT Path                                                         |
 | :----------------------------------------- | :-------------------------------------------------------------- |
-| C:\Windows\System32\Driver\wd\WdFilter.sys | \Device\HarddiskVolume4\Windows\System32\Driver\wd\WdFilter.sys |
+| C:\Temp\test.txt| \Device\HarddiskVolume4\Temp\test.txt|
 
 When using `explorer.exe` to navigate the folders in the filesystem we use Win32 paths and in fact the path you see in the table above is exactly the path in which you can find `WdFilter.sys`, though it's just an abstraction layer as the kernel uses NT paths to work and Win32 paths are translated to NT paths before being consumed by the OS.  
   
@@ -22,7 +22,7 @@ To make things a bit more complicated, NT paths can make use of NT symbolic link
 
 [![sc.exe qc wdfilter]({{site.baseurl}}/img/wdfilterpath.PNG)]({{site.baseurl}}/img/wdfilterpath.PNG)
 
-As you can see it's not exactly the one we showed in the table above, as `\SystemRoot` is a NT symbolic link. Using SysInternals' Winobj.exe we can see that `\SystemRoot` points to `\Device\BootDevice\Windows`. `\Device\BootDevice` is itself another symbolic link to, at least for my machine, `\Device\HarddiskVolume4`. Like all objects in the Windows kernel, NT symbolic links' security is subordinated to ACL. Let's inspect them:
+As you can see the path starts with `\SystemRoot`, which is a NT symbolic link. Using SysInternals' Winobj.exe we can see that `\SystemRoot` points to `\Device\BootDevice\Windows`. `\Device\BootDevice` is itself another symbolic link to, at least for my machine, `\Device\HarddiskVolume4`. Like all objects in the Windows kernel, NT symbolic links' security is subordinated to ACL. Let's inspect them:
 
 [![symlink acl]({{site.baseurl}}/img/symlinkacl.PNG)]({{site.baseurl}}/img/symlinkacl.PNG)
 
