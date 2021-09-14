@@ -269,6 +269,7 @@
   }
   
   h1::before, h2::before, h3::before, h4::before, h5::before, h6::before {
+    color: white;
     content: "# ";
   } 
   //h4, h5, h6 { margin-top: $spacing-unit; color: #5c0004; font-weight: bold }
