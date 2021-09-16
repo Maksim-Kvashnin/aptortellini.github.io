@@ -2,6 +2,7 @@
 layout: post
 title: Taking a detour inside LSASS
 subtitle: Extracting local hashes by hooking functions inside LSASS
+image: /img/aptortellinilogo.jpg
 author:
 - last
 ---
