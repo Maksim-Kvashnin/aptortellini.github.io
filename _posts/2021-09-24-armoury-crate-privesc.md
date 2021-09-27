@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Stealing weapons from the Armoury	
-subtitle: Root cause analysis of a privilege escalation vulnerability in ASUS ROG Armoury Crate Lite Service v4.2.8
+subtitle: Root cause analysis of a privilege escalation vulnerability in ASUS ROG Armoury Crate Lite Service v4.2.8 (CVE-2021-40981)
 image: /img/armourytortellino.jpg
 published: true
 author:
@@ -93,5 +93,6 @@ We have two culprits here:
 - 2021/09/10: ASUS acknowledges the report and forwards it to their dev branch;
 - 2021/09/13: ASUS devs confirm the vulnerability and say it will be fixed in the next release, expected for week 39 of this year (27/09 - 01/10);
 - 2021/09/24: ASUS confirms the vulnerability has been fixed in version 4.2.10 of the service;
+- 2021/09/27: MITRE assigns CVE-2021-40981 to this vulnerability;
 
 Kudos to ASUS for the quick response and professionalism in dealing with the problem! That's all for today lads, last out!
