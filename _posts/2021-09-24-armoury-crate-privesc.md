@@ -56,7 +56,7 @@ To inspect the ACL of the folder from which Armoury Crate tries to load the DLL 
 Get-Acl 'C:\ProgramData\ASUS\GamingCenterLib' | Select-Object *
 ```
 
-This command will return the following output, which tells us `BUILTIN\Users` users have write access to the directory:
+This command will return a SDDL string (which is essentially a one-to-one string representation of the graphical ACL we are used to see in Windows), which when parsed with `ConvertFrom-SddlString` tells us `BUILTIN\Users` have write access to the directory:
 
 [![armoury acls]({{site.baseurl}}/img/acl0.png)]({{site.baseurl}}/img/acl0.png)
 
