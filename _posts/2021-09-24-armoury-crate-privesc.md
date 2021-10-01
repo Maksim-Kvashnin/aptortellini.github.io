@@ -80,7 +80,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 Now that we have everything ready we just have to wait for a privileged user to log in. This is needed as the DLL is loaded by `ArmouryCrate.UserSessionHelper.exe` which runs with the highest privileges available to the user to which the session belongs. As soon as the privileged user logs in, we have a new admin user, confirming administrator-level code execution.
 
 ### Root cause analysis
-Let's now have a look at what caused this vulnerability. As you can see from the call stack shown in the screenshot in the beginning of this article, the DLL is loaded from code located inside `GamingCenterPlugin.dll`, at offset `QueryLibrary + 0x167d` which is actually another function I renamed `DllLoadLibraryImplement` (by reversing `GamingCenterPlugin.dll` with IDA Pro you can see most functions in this DLL have some sort of logging feature which references strings containing the possible name of the function). Here's the code responsible for the call to `LoadLibraryExW`:
+Let's now have a look at what caused this vulnerability. As you can see from the call stack shown in the screenshot in the beginning of this article, the DLL is loaded from code located inside `GameBoxPlugin.dll`, at offset `QueryLibrary + 0x167d` which is actually another function I renamed `DllLoadLibraryImplement` (by reversing `GameBoxPlugin.dll` with IDA Pro you can see most functions in this DLL have some sort of logging feature which references strings containing the possible name of the function). Here's the code responsible for the call to `LoadLibraryExW`:
 
 [![ida call]({{site.baseurl}}/img/idaloadlibrary.png)]({{site.baseurl}}/img/idaloadlibrary.png)
 
