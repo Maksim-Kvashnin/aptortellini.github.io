@@ -25,7 +25,7 @@ and many others...
 
 despite the posts described above that are seriously top notch level, we decided to proceed taking inspiration from our fellow countryman Marcello aka byt3bl33d3r which came to the rescue!
 
-https://byt3bl33d3r.substack.com/p/taking-the-pain-out-of-c2-infrastructure
+- [https://byt3bl33d3r.substack.com/p/taking-the-pain-out-of-c2-infrastructure](https://byt3bl33d3r.substack.com/p/taking-the-pain-out-of-c2-infrastructure)
 
 As you can see from his post, Marcello makes available to us mere mortals a quick configuration, which prompted us to want to deepen the argument
 
