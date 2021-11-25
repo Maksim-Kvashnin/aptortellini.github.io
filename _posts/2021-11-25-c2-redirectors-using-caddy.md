@@ -9,7 +9,6 @@ author:
 - knifesec
 ---
 ### Giving Caddy redirectors some love
-
 [![tortellinicaddy]({{site.baseurl}}/img/tortellinicaddy.jpg)]({{site.baseurl}}/img/tortellinicaddy.jpg)
 
 The consultant's life is a difficult one. New business, new setup and sometimes you gotta do everything in a hurry. We are not a top notch security company with a fully automated infra. We are poor, rookies and always learning from the best.
