@@ -10,6 +10,8 @@ author:
 ---
 ### Giving Caddy redirectors some love
 
+[![tortellinicaddy]({{site.baseurl}}/img/tortellinicaddy.jpg)]({{site.baseurl}}/img/tortellinicaddy.jpg)
+
 The consultant's life is a difficult one. New business, new setup and sometimes you gotta do everything in a hurry. We are not a top notch security company with a fully automated infra. We are poor, rookies and always learning from the best.
 
 We started by reading several blogposts that can be found on the net, written by people much more experienced than us, realizing that redirectors are almost always based on apache and nginx, which are great solutions! but we wanted to explore other territories...
