@@ -8,7 +8,7 @@ author:
 - Her0
 - Electroxero
 ---
-# Giving Caddy redirectors some love
+### Giving Caddy redirectors some love
 
 The consultant's life is a difficult one. New business, new setup and sometimes you gotta do everything in a hurry. We are not a top notch security company with a fully automated infra. We are poor, rookies and always learning from the best.
 
@@ -29,7 +29,7 @@ https://byt3bl33d3r.substack.com/p/taking-the-pain-out-of-c2-infrastructure
 
 As you can see from his post, Marcello makes available to us mere mortals a quick configuration, which prompted us to want to deepen the argument
 
-# Why Caddy Server ?
+### Why Caddy Server ?
 
 Caddy was born as an opensource webserver specifically created to be easy to use and safe. it is written in go and runs on almost every platform.
 
@@ -40,7 +40,7 @@ Another important factor is the configurative side that is very easy to understa
 
 
 
-# Let's Configure!
+### Let's Configure!
 [![1]({{site.baseurl}}/img/01.jpg)]({{site.baseurl}}/img/01.jpg)
 
 
@@ -94,7 +94,7 @@ To make things clearer, here we have a tree of the structure we are going to imp
     └── cdn.aptortellini.cloud
         └── index.html
 ```
-## CADDYFILE
+### CADDYFILE
 
 This is the default configuration file for Caddy
 
@@ -119,7 +119,7 @@ import sites/*.caddy
 
 We decided to keep the Caddyfile as clean as possible, spending some more time structuring and modulating the `.caddy` files
 
-## FILTERS folder
+### FILTERS folder
 
 This folder contain all basic configuration for the web server, for example:
 
@@ -127,7 +127,7 @@ This folder contain all basic configuration for the web server, for example:
 * list of User Agents (UA) to block
 * default implementation of security headers
 
-### bad_ips.caddy
+##### bad_ips.caddy
 
 ```
 remote_ip mal.ici.ous.ips
@@ -135,7 +135,7 @@ remote_ip mal.ici.ous.ips
 
 Still incomplete but usable list we crafted can be found here: https://github.com/her0ness/av-edr-urls/blob/main/AV-EDR-Netblocks
 
-### bad_ua.caddy
+##### bad_ua.caddy
 This will block all User-Agent we don't want to visit our domain.
 ```
 header User-Agent curl*
@@ -143,7 +143,7 @@ header User-Agent *bot*
 ```
 A very well done bad_ua list can be found, for example, here: https://github.com/mitchellkrogza/nginx-ultimate-bad-bot-blocker/blob/master/_generator_lists/bad-user-agents.list
 
-### headers_standard.caddy
+##### headers_standard.caddy
 
 ```
 # Add a custom fingerprint signature
@@ -172,11 +172,11 @@ Cache-Control no-cache
 ```
 We decided to hardly customize the response `Server` header to mislead any detection based on response headers.
 
-## SITES folder
+### SITES folder
 
 You may see this folder similar to `sites-available` and `sites-enabled` in nginx; where you store the whole host configuration.
 
-### Example front-end redirector (cdn.aptortellini.cloud.caddy)
+#### Example front-end redirector (cdn.aptortellini.cloud.caddy)
 
 From our experience ( false, we are rookies) this file should contain a single host because we have decided to uniquely identify each individual host, but feel free to add as many as you want, You messy!
 
@@ -203,13 +203,13 @@ https://cdn.aptortellini.cloud {
 }
 ```
 
-## UPSTREAMS folder
+#### UPSTREAMS folder
 
 the file contains the entire upstream part, the inner part of the reverse proxy has been voluntarily detached because it often requires individual ad-hoc configurations
 
 
 
-### cobalt_proxy_upstreams
+#### cobalt_proxy_upstreams
 
 ```Handle Directive```: Evaluates a group of directives mutually exclusively from other `handle` blocks at the same level of nesting.
 
@@ -259,11 +259,11 @@ To make things more comprehensive, here we have the sample of `http-get` block a
 }
 ```
 
-## REVERSE PROXY folder
+#### REVERSE PROXY folder
 
 The reverse proxy directly instruct the https stream connection to forward the request to the teamserver if the rules above are respected.
 
-### Cobalt Strike redirector to HTTPS endpoint
+#### Cobalt Strike redirector to HTTPS endpoint
 
 ```
 reverse_proxy https://<cobalt_strike_endpoint> {
@@ -283,7 +283,7 @@ reverse_proxy https://<cobalt_strike_endpoint> {
     }
 }
 ```
-## WWW
+#### WWW
 
  This folder is reserved if you want to put a website in here and manually categorize it
  
@@ -293,7 +293,7 @@ reverse_proxy https://<cobalt_strike_endpoint> {
  
  https://github.com/mdsecactivebreach/Chameleon
  
-## Start Caddy
+#### Starting Caddy
 
 Once started, caddy will automatically obtain the SSL certificate. Remember to start Caddy in the same folder where you placed your `Caddyfile`!
 
@@ -308,13 +308,13 @@ To reload the configuration, you can just run the following command in the root 
 ```bash
 sudo caddy reload
 ```
-## Getting a CS Beacon
+#### Getting a CS Beacon
 
 Everything worked as expected and the beacon is obtained
 
 [![5]({{site.baseurl}}/img/05.jpg)]({{site.baseurl}}/img/05.jpg)
 
-## A final thought
+### A final thought
 
 This blogpost is just the beginning of a series focused on making infrastructures for offensive security purposes, in the upcoming months we will expand the section with additional components.
 
