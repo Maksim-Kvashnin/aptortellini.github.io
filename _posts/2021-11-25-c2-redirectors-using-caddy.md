@@ -16,10 +16,10 @@ We started by reading several blogposts that can be found on the net, written by
 
 just to name a few:
 
-https://www.praetorian.com/blog/praetorians-approach-to-red-team-infrastructure/
-https://www.mdsec.co.uk/2020/02/testing-your-redteam-infrastructure/
-https://www.netspi.com/blog/technical/adversary-simulation/modern-red-team-infrastructure/
-https://bluescreenofjeff.com/2017-12-05-designing-effective-covert-red-team-attack-infrastructure/
+- [https://www.praetorian.com/blog/praetorians-approach-to-red-team-infrastructure/](https://www.praetorian.com/blog/praetorians-approach-to-red-team-infrastructure/)
+- [https://www.mdsec.co.uk/2020/02/testing-your-redteam-infrastructure/](https://www.mdsec.co.uk/2020/02/testing-your-redteam-infrastructure/)
+- [https://www.netspi.com/blog/technical/adversary-simulation/modern-red-team-infrastructure/](https://www.netspi.com/blog/technical/adversary-simulation/modern-red-team-infrastructure/)
+- [https://bluescreenofjeff.com/2017-12-05-designing-effective-covert-red-team-attack-infrastructure/](https://bluescreenofjeff.com/2017-12-05-designing-effective-covert-red-team-attack-infrastructure/)
 
 and many others...
 
