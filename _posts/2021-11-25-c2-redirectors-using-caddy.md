@@ -69,11 +69,11 @@ At this point let's populate the`/caddy` with our own `Caddyfile` and relative f
 
 To make things clearer, here we have a tree of the structure we are going to implement:
 
-1) The actual `Caddyfile`
-2) The `filters` folder, which will contain our countermeasures and defensive mechanisms ( wtf are you talking about there is a bunch of crap inside here)
-3) the `sites` folder, which will contain the domains for our red team operation and relative logfiles
-4) the `upstreams` folder, which will contain the entire upstreams part
-5) the `www` folder, which will contain the sites if we want to farm a categorization for our domains, like hosting a custom index.html or simply clone an exsiting one because we are terrible individuals.
+1. The actual `Caddyfile`
+1. The `filters` folder, which will contain our countermeasures and defensive mechanisms ( wtf are you talking about there is a bunch of crap inside here)
+1. the `sites` folder, which will contain the domains for our red team operation and relative logfiles
+1. the `upstreams` folder, which will contain the entire upstreams part
+1. the `www` folder, which will contain the sites if we want to farm a categorization for our domains, like hosting a custom index.html or simply clone an exsiting one because we are terrible individuals.
 
 ```
 .
