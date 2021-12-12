@@ -82,7 +82,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 }
 ```
 
-Ora che abbiamo tutto pronto dobbiamo solo aspettare che un utente amministratore si autentichi sulla macchina. Questo è necessario poiché la DLL in questione viene caricata dal processo `ArmouryCrate.UserSessionHelper.exe` che, come abbiamo detto all'inizio dell'articolo, esegue con i privilegi massimi consentiti all'utente autenticato. Nonappena un amministratore si autentica ci ritroveremo con un nuovo utente amministratore, confermando la privilege escalation.
+Ora che abbiamo tutto pronto dobbiamo solo aspettare che un utente amministratore si autentichi sulla macchina. Questo è necessario poiché la DLL in questione viene caricata dal processo `ArmouryCrate.UserSessionHelper.exe` che, come abbiamo detto all'inizio dell'articolo, esegue con i privilegi massimi consentiti all'utente autenticato. Al momento dell'autenticazione di un utente amministratore ci ritroveremo con un nuovo utente amministratore, confermando la privilege escalation.
 
 ### Root cause analysis
 
