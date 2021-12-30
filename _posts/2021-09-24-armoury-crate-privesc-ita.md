@@ -1,6 +1,6 @@
 ---
 layout: post
-title: [ITA] Stealing weapons from the Armoury	
+title: 🇮🇹 Stealing weapons from the Armoury	
 subtitle: Analisi della privilege escalation in ASUS ROG Armoury Crate Lite Service v4.2.8 (CVE-2021-40981)
 image: /img/armourytortellino.jpg
 published: true
