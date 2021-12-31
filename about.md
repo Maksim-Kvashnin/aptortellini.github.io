@@ -3,7 +3,22 @@ layout: page
 title: The Collective
 permalink: /about/
 ---
-Originally started as a joke made between [Her0](https://twitter.com/Her0_IT), [last](https://twitter.com/last0x00) and [Riccardo](https://twitter.com/dottor_morte), the Advanced Persistent Tortellini group is made of a bunch of Italian guys interested in deeply technical topics and offensive techniques. We code, hack, and publish research here from time to time. Life is too short, steal some SYSTEM tokens!
+
+## The collective
+Originally started as a joke made between [Her0](https://twitter.com/Her0_IT), [last](https://twitter.com/last0x00) and [Riccardo](https://twitter.com/dottor_morte), the Advanced Persistent Tortellini collective is made of a bunch of Italian guys interested in deeply technical topics and offensive techniques. We code, hack, and publish research here from time to time. 
+
+## The members
+- Devid [@Her0_IT](https://twitter.com/Her0_IT) Lana
+- Riccardo [@dottor_morte](https://twitter.com/dottor_morte) Ancarani
+- Valerio [@mrsaighnal](https://twitter.com/mrsaighnal) Alessandroni
+- Michele [@0blio_](https://twitter.com/0blio_) Cisternino
+- Vincenzo [@vincentdthe](https://twitter.com/vincentdthe) Di Micco
+- Edoardo [@knifesec](https://twitter.com/knifesec) Novello
+- Paolo @Voidsec [@Void_sec](https://twitter.com/Void_sec) Stagno
+- Federico @last0x00 [@last0x00](https://twitter.com/last0x00) Lagrasta
+
+## cat /dev/urandom
+Life is too short, steal some SYSTEM tokens!
 
 ```
   .#####.   mimikatz 2.2.0 (x64) #17763 Jan 15 2021 09:31:27
