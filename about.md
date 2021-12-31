@@ -14,8 +14,8 @@ Originally started as a joke made between [Her0](https://twitter.com/Her0_IT), [
 - Michele [@0blio_](https://twitter.com/0blio_) Cisternino
 - Vincenzo [@vincentdthe](https://twitter.com/vincentdthe) Di Micco
 - Edoardo [@knifesec](https://twitter.com/knifesec) Novello
-- Paolo @Voidsec [@Void_sec](https://twitter.com/Void_sec) Stagno
-- Federico @last0x00 [@last0x00](https://twitter.com/last0x00) Lagrasta
+- Paolo [@Void_sec](https://twitter.com/Void_sec) Stagno
+- Federico [@last0x00](https://twitter.com/last0x00) Lagrasta
 
 ## cat /dev/urandom
 Life is too short, steal some SYSTEM tokens!
