@@ -5,7 +5,7 @@ permalink: /about/
 ---
 
 ## TL;DR
-Originally started as a joke made between [Her0](https://twitter.com/Her0_IT), [last](https://twitter.com/last0x00) and [Riccardo](https://twitter.com/dottor_morte), the Advanced Persistent Tortellini collective is made of a bunch of Italian guys interested in deeply technical topics and offensive techniques. We code, hack, and publish research here from time to time. 
+Originally started as a joke between [Her0](https://twitter.com/Her0_IT), [last](https://twitter.com/last0x00) and [Riccardo](https://twitter.com/dottor_morte), the Advanced Persistent Tortellini collective is made of a bunch of Italian guys interested in deeply technical topics and offensive techniques. We code, hack, and publish research here from time to time. 
 
 ## The members
 - Devid [@Her0_IT](https://twitter.com/Her0_IT) Lana
