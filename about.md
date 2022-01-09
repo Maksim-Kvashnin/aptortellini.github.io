@@ -17,7 +17,7 @@ Originally started as a joke between [Her0](https://twitter.com/Her0_IT), [last]
 - Paolo [@Void_sec](https://twitter.com/Void_sec) Stagno
 - Federico [@last0x00](https://twitter.com/last0x00) Lagrasta
 
-## cat /dev/urandom
+## sekurlsa::logonpasswords
 Life is too short, steal some SYSTEM tokens!
 
 ```
