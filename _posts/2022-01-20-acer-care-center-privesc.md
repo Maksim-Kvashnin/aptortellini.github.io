@@ -1,7 +1,7 @@
 ---
 layout: post
 title: 🇬🇧 The ace(r) up your sleeve!
-subtitle: Privilege Escalation vulnerability in Acer Care Center - CVE-2021-45975
+subtitle: Privilege Escalation vulnerability in Acer Care Center (CVE-2021-45975)
 image: /img/acertortellino.jpg
 published: true
 author:
