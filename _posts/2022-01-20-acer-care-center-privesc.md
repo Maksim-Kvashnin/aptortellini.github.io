@@ -10,7 +10,7 @@ author:
 ![acer pwnd](/img/acertortellino.jpg)
 
 ### TL;DR
-Acer ships most of the laptop it sells with a software suite called [Care Center Service](https://www.acer.com/ac/en/US/content/software-acer-care-center) installed. In version 4.00.3038, one of the suite's programs is an executable named `ListCheck.exe`, which runs at logon with the highest privilege available and suffers from a phantom DLL hijacking. This can lead to a privilege escalation when an administrator logs in. The vulnerability has been assigned ID [CVE-2021-45975](https://nvd.nist.gov/vuln/detail/CVE-2021-45975)
+Acer ships most of the laptop it sells with a software suite called [Care Center Service](https://www.acer.com/ac/en/US/content/software-acer-care-center) installed. In version 4.00.3038, one of the suite's programs is an executable named `ListCheck.exe`, which runs at logon with the highest privilege available and suffers from a phantom DLL hijacking. This can lead to a privilege escalation when an administrator logs in. The vulnerability has been assigned ID [CVE-2021-45975](https://cve.report/CVE-2021-45975)
 
 ### Introduction
 Greetings mates, [last](https://twitter.com/last0x00) here! As I previously mentioned, lately I've been busy hunting for vulnerabilities and I ended up finding another privilege escalation in one of those softwares computer manufacturers put in the computers they sell. This time it ended up being in [Care Center Service](https://www.acer.com/ac/en/US/content/software-acer-care-center), a software suite Acer uses to keep devices they build updated. I won't delve into the details of how I found the vulnerability, as it's pretty much the same methodology I explained in [the post about a similar vulnerability](https://aptw.tf/2021/09/24/armoury-crate-privesc.html) in an [ASUS product](https://nvd.nist.gov/vuln/detail/CVE-2021-40981) I found last October.
@@ -32,7 +32,7 @@ Acer had released a patch for Acer Care Center on the 27th of December 2021 in o
 ### Responsible disclosure timeline (YYYY/MM/DD)
 - 2021/10/30: vulnerability reported to Acer via email sent to [vulnerability@acer.com](mailto:vulnerability@acer.com);
 - 2021/12/08: Acer acknowledges the report and confirms the vulnerabilty;
-- 2021/12/27: Acer releases the patch, MITRE assigns ID [CVE-2021-45975](https://nvd.nist.gov/vuln/detail/CVE-2021-45975) to this vulnerability;
+- 2021/12/27: Acer releases the patch, MITRE assigns ID [CVE-2021-45975](https://cve.report/CVE-2021-45975) to this vulnerability;
 - 2022/01/20: the advisory about the vulnerability and this post are published;
 
 That's all for today folks, see you next time, last out!
