@@ -33,6 +33,6 @@ Acer had released a patch for Acer Care Center on the 27th of December 2021 in o
 - 2021/10/30: vulnerability reported to Acer via email sent to [vulnerability@acer.com](mailto:vulnerability@acer.com);
 - 2021/12/08: Acer acknowledges the report and confirms the vulnerabilty;
 - 2021/12/27: Acer releases the patch, MITRE assigns ID [CVE-2021-45975](https://cve.report/CVE-2021-45975) to this vulnerability;
-- 2022/01/20: the advisory about the vulnerability and this post are published;
+- 2022/01/20: [the advisory about the vulnerability](https://community.acer.com/en/kb/articles/14757-acer-care-center-requires-an-update-to-resolve-a-security-vulnerability) and this post are published;
 
 That's all for today folks, see you next time, last out!
