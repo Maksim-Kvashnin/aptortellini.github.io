@@ -9,7 +9,7 @@ author:
 ---
 [![armoury pwnd]({{site.baseurl}}/img/armourytortellino.jpg)]({{site.baseurl}}/img/armourytortellino.jpg)
 ### TL;DR
-[ASUS ROG Armoury Crate](https://rog.asus.com/us/armoury-crate/) ships with a service called Armoury Crate Lite Service which suffers from a phantom DLL hijacking vulnerability that allows a low privilege user to execute code in the context other users, administrators included. To trigger the vulnerability, an administrator must log in after the attacker has placed the malicious DLL at the path `C:\ProgramData\ASUS\GamingCenterLib\.DLL`. The issue has been fixed with the release of Armoury Crate Lite Service 4.2.10.
+[ASUS ROG Armoury Crate](https://rog.asus.com/us/armoury-crate/) ships with a service called Armoury Crate Lite Service which suffers from a phantom DLL hijacking vulnerability that allows a low privilege user to execute code in the context other users, administrators included. To trigger the vulnerability, an administrator must log in after the attacker has placed the malicious DLL at the path `C:\ProgramData\ASUS\GamingCenterLib\.DLL`. The issue has been fixed with the release of Armoury Crate Lite Service 4.2.10. The vulnerability has been assigned ID [CVE-2021-40981](https://cve.report/CVE-2021-40981).
 
 ### Introduction
 Greetings fellow hackers, last here! Recently I've been looking for vulnerabilities here and there - too much free time maybe? Specifically, I focused on hunting for DLL hijackings in privileged processes, as they usually lead to a local privilege escalation. A DLL hijacking revolves around forcing a process to run an attacker controlled DLL instead of the legitimate DLL the process is trying to load, nothing more. To make a process load your DLL you have to control the path from which said DLL is loaded. There are essentially two kinds of DLL hijackings: standard DLL hijackings and phantom DLL hijackings. The main difference is that in standard ones the legitimate DLL exists and is overwritten or proxied by the attacker's DLL, while in phantom DLL hijackings the process tries to load a non existing DLL, hence the attacker can just drop its malicious DLL in the path and call it a day.
@@ -93,6 +93,6 @@ We have two culprits here:
 - 2021/09/10: ASUS acknowledges the report and forwards it to their dev branch;
 - 2021/09/13: ASUS devs confirm the vulnerability and say it will be fixed in the next release, expected for week 39 of this year (27/09 - 01/10);
 - 2021/09/24: ASUS confirms the vulnerability has been fixed in version 4.2.10 of the service;
-- 2021/09/27: MITRE assigns [CVE-2021-40981](https://nvd.nist.gov/vuln/detail/CVE-2021-40981) to this vulnerability;
+- 2021/09/27: MITRE assigns [CVE-2021-40981](https://cve.report/CVE-2021-40981) to this vulnerability;
 
 Kudos to ASUS for the quick response and professionalism in dealing with the problem! That's all for today lads, last out!
