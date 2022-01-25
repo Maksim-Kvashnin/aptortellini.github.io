@@ -9,7 +9,7 @@ author:
 ---
 [![armoury pwnd]({{site.baseurl}}/img/armourytortellino.jpg)]({{site.baseurl}}/img/armourytortellino.jpg)
 ### TL;DR
-Il software [ASUS ROG Armoury Crate](https://rog.asus.com/us/armoury-crate/) installa un servizio chiamato Armoury Crate Lite Service, vulnerabile a phantom DLL hijacking. Ciò permette a un utente non privilegiato di eseguire codice nel contesto di altri utenti, amministratori inclusi. Per sfruttare la vulnerabilità, un amministratore deve autenticarsi sulla macchina compromessa dopo che un attaccante ha posizionato una DLL malevola nel path `C:\ProgramData\ASUS\GamingCenterLib\.DLL`. ASUS ha fixato la vulnerabilità rilasciando la versione v4.2.10 di Armoury Crate Lite Service.
+Il software [ASUS ROG Armoury Crate](https://rog.asus.com/us/armoury-crate/) installa un servizio chiamato Armoury Crate Lite Service, vulnerabile a phantom DLL hijacking. Ciò permette a un utente non privilegiato di eseguire codice nel contesto di altri utenti, amministratori inclusi. Per sfruttare la vulnerabilità, un amministratore deve autenticarsi sulla macchina compromessa dopo che un attaccante ha posizionato una DLL malevola nel path `C:\ProgramData\ASUS\GamingCenterLib\.DLL`. ASUS ha fixato la vulnerabilità, a cui il MITRE ha assegnato l'ID [CVE-2021-40981](https://cve.report/CVE-2021-40981), rilasciando la versione v4.2.10 di Armoury Crate Lite Service.
 
 ### Introduzione
 Salve compagni di viaggio, è [last](https://twitter.com/last0x00) che vi scrive! Recentemente mi sono messo alla ricerca di qualche vulnerabilità qua e là (devo lavorare sull'impiego del mio tempo libero, lo so). Più precisamente mi sono concentrato su un particolare tipo di vulnerabilità chiamato phantom DLL hijacking ("statece", lo lascio in inglese che tradotto faceva un po' ~~schifarcazzo~~ pietà) che su Windows può portare, nel migliore dei casi, a backdoor negli applicativi o, nel peggiore dei casi, a bypass di UAC e/o privilege escalation.  
@@ -99,7 +99,7 @@ In questo caso abbiamo due "colpevoli":
 - 2021/09/10: ASUS conferma di aver ricevuto il report e lo inoltra al suo team di sviluppo;
 - 2021/09/13: Il team di sviluppo conferma la presenza della vulnerabilità e afferma che sarà fixata nella successiva release, prevista per la 39esima settimana dell'anno in corso(27/09 - 01/10);
 - 2021/09/24: ASUS conferma che la vulnerabilità è stata fixata nella versione 4.2.10 del servizio;
-- 2021/09/27: il MITRE assegna il CVE con codice [CVE-2021-40981](https://nvd.nist.gov/vuln/detail/CVE-2021-40981) a questa vulnerabilità;
+- 2021/09/27: il MITRE assegna il CVE con codice [CVE-2021-40981](https://cve.report/CVE-2021-40981) a questa vulnerabilità;
 
 Kudos ad ASUS per la celerità e professionalità nella gestione della vulnerabilità. È tutto per oggi e alla prossima!
 
