@@ -10,12 +10,12 @@ author:
 [![tortellino windows](/img/tortellindows.png)](/img/tortellindows.png)
 
 ### TL;DR
-There are some situations where processes with high or SYSTEM integrity request handles to privileged processes/threads/tokens and then spawn lower integrity processes. If these handles are sufficiently powerful, of the right type and are inherited by the child process, we can clone them from another process and then abuse them to escalate privileges and/or bypass UAC. In this post we will learn how to look for and abuse this kind of vulnerability.
+There are some situations in which processes with high or SYSTEM integrity request handles to privileged processes/threads/tokens and then spawn lower integrity processes. If these handles are sufficiently powerful, of the right type and are inherited by the child process, we can clone them from another process and then abuse them to escalate privileges and/or bypass UAC. In this post we will learn how to look for and abuse this kind of vulnerability.
 
 ### Introduction
 Hello there, hackers in arms, [last](https://twitter.com/last0x00) here! Lately I've been hunting a certain type of vulnerability which can lead to privilege escalations or UAC bypasses. Since I don't think it has been thoroughly explained yet, let alone automatized, why don’t we embark on this new adventure?  
 
-Essentially, the idea is to see if we can find unprivileged processes which have privileged handles to high integrity (aka elevated) or SYSTEM processes, and then check if we can attach to these processes as an unprivileged user and clone these handles to later abuse them. What constraints will be placed on our tool?
+Essentially, the idea is to see if we can automatically find unprivileged processes which have privileged handles to high integrity (aka elevated) or SYSTEM processes, and then check if we can attach to these processes as an unprivileged user and clone these handles to later abuse them. What constraints will be placed on our tool?
 1. It must run as a medium integrity process
 2. No SeDebugPrivilege in the process' token (no medium integrity process has that by default)
 3. No UAC bypass as it must also work for non-administrative users
@@ -75,7 +75,7 @@ From this Process Explorer screenshot we can gain a few information:
 - Yellow box: the address of the object the handle refers to;
 - Green box: the access mask and its decoded value (access masks are macros defined in the `Windows.h` header). This tells us what privileges are granted on the object to the holder of the handle;
 
-To obtain this information there are many methods, not necessarily involving the use of code running in kernelmode. Among these methods, the most practical and useful is relying on the native API `NtQuerySystemInformation`, which, when called passing the `SystemHandleInformation` (0x10) value as its first parameter, returns us a pointer to an array of `SYSTEM_HANDLE` variables where each of them refers to a handle opened by a process on the system.
+To obtain this information there are many methods, not necessarily involving the use of code running in kernelmode. Among these methods, the most practical and useful is relying on the native API [`NtQuerySystemInformation`](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntquerysysteminformation), which, when called passing the `SystemHandleInformation` (0x10) value as its first parameter, returns us a pointer to an array of `SYSTEM_HANDLE` variables where each of them refers to a handle opened by a process on the system.
 
 ```c++
 NTSTATUS NtQuerySystemInformation(
@@ -164,7 +164,7 @@ From these assumptions we can deduce the following information:
 - When calling `NtQuerySystemInformation` we can enumerate handles held by our own process
 - If we get a handle to a process through `OpenProcess` we know the PID of said process, and, through `NtQuerySystemInformation`, its `_EPROCESS`'s kernelspace address
 
-Can you see where we are going? If we manage to open a handle with access `PROCESS_QUERY_LIMITED_INFORMATION` to all of the processes and later retrieve all of the system handles through 	`NtQuerySystemInformation` we can then filter out all the handles not belonging to our process and extract from those that do belong to our process the `Object` value and get a match between it and the resulting PID. Of course the same can be done with threads, only using `OpenThread` and `THREAD_QUERY_INFORMATION_LIMITED`.
+Can you see where we are going? If we manage to open a handle with access `PROCESS_QUERY_LIMITED_INFORMATION` to all of the processes and later retrieve all of the system handles through 	`NtQuerySystemInformation` we can then filter out all the handles not belonging to our process and extract from those that do belong to our process the `Object` value and get a match between it and the resulting PID. Of course the same can be done with threads, only using [`OpenThread`](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openthread) and `THREAD_QUERY_INFORMATION_LIMITED`.
 
 To efficiently open all of the processes and threads on the system we can rely on the routines of the `TlHelp32.h` library, which essentially allow us to take a snapshot of all the processes and threads on a system and walk through that snapshot to get the PIDs and TIDs (Thread ID) of the processes and threads running when the snapshot was taken.
 
@@ -194,13 +194,13 @@ do
 ```
 We first define a `std::map` which is a dictionary-like class in C++ that will allow us to keep track of which handles refer to which PID. We will call it `mHandleId`. 
 
-Done that we take a snapshot of the state of the system regarding processes using  the `CreateToolhelp32Snapshot` and specifying we only want processes (through the `TH32CS_SNAPPROCESS` argument). This snapshot is assigned to the `snapshot` variable, which is of type `wil::unique_handle`, a C++ class of the WIL library which frees us of the burden of having to take care of properly cleaning handles once they are used. Done that we define and initialize a `PROCESSENTRY32W` variable called `processEntry` which will hold the information of the process we are examining once we start iterating through the snapshot.
+Done that we take a snapshot of the state of the system regarding processes using  the [`CreateToolhelp32Snapshot`](https://docs.microsoft.com/en-us/windows/win32/api/tlhelp32/nf-tlhelp32-createtoolhelp32snapshot) and specifying we only want processes (through the `TH32CS_SNAPPROCESS` argument). This snapshot is assigned to the `snapshot` variable, which is of type `wil::unique_handle`, a C++ class of the WIL library which frees us of the burden of having to take care of properly cleaning handles once they are used. Done that we define and initialize a `PROCESSENTRY32W` variable called `processEntry` which will hold the information of the process we are examining once we start iterating through the snapshot.
 
-After doing so we call `Process32FirstW` and fill `processEntry` with the data of the first process in the snapshot. For each process we try to call `OpenProcess`  with `PROCESS_QUERY_LIMITED_INFORMATION` on its PID and, if successful, we store the handle - PID pair inside  the `mHandleId` map.
+After doing so we call [`Process32FirstW`](https://docs.microsoft.com/en-us/windows/win32/api/tlhelp32/nf-tlhelp32-process32first) and fill `processEntry` with the data of the first process in the snapshot. For each process we try to call `OpenProcess`  with `PROCESS_QUERY_LIMITED_INFORMATION` on its PID and, if successful, we store the handle - PID pair inside  the `mHandleId` map.
 
-On each `while` cycle we execute `Process32NextW` and fill the `processEntry` variable with a new process, until it returns false and we get out of the loop. We now have a 1 to 1 map between our handles and the PID of the processes they point to. Onto phase 2!
+On each `while` cycle we execute [`Process32NextW`](https://docs.microsoft.com/en-us/windows/win32/api/tlhelp32/nf-tlhelp32-process32nextw) and fill the `processEntry` variable with a new process, until it returns false and we get out of the loop. We now have a 1 to 1 map between our handles and the PID of the processes they point to. Onto phase 2!
 
-It's now time to get all of system's handles and filter out the ones not belonging to our process. We already saw how to retrieve all the handles, now it's just a matter of checking each `SYSTEM_HANDLE` and comparing its `ProcessId` member with the PID of our process, obtainable through the aptly named `GetCurrentProcessId` function. We then store the `Object` and `Handle` members' value of those `SYSTEM_HANDLE`s that belong to our process in a similar manner as we did we the handle - PID pairs, using a map we will call `mAddressHandle`.
+It's now time to get all of system's handles and filter out the ones not belonging to our process. We already saw how to retrieve all the handles, now it's just a matter of checking each `SYSTEM_HANDLE` and comparing its `ProcessId` member with the PID of our process, obtainable through the aptly named [`GetCurrentProcessId`](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getcurrentprocessid) function. We then store the `Object` and `Handle` members' value of those `SYSTEM_HANDLE`s that belong to our process in a similar manner as we did we the handle - PID pairs, using a map we will call `mAddressHandle`.
 
 ```c++
 std::map<uint64_t, HANDLE> mAddressHandle;
@@ -309,7 +309,7 @@ auto hOwner = OpenProcess(PROCESS_DUP_HANDLE, false, ownerPid);
 HANDLE clonedHandle;
 auto success = DuplicateHandle(hOwner, (HANDLE)sysHandle.Handle, GetCurrentProcess(), &clonedHandle, NULL, false, DUPLICATE_SAME_ACCESS);
 ```
-This is fairly easy and if you skip error control, which you shouldn't skip (right, [h0nus](https://twitter.com/h0nus)?), it boils down to only a handful of code lines. First you open the process with `PROCESS_DUP_HANDLE` access, which is the least amount of privilege required to duplicate a handle, and then call `DuplicateHandle` on that process, telling the function you want to clone the handle saved in `sysHandle.Handle` (which is the interesting handle we retrieved before) and save it into the current process in the `clonedHandle` variable.
+This is fairly easy and if you skip error control, which you shouldn't skip (right, [h0nus](https://twitter.com/h0nus)?), it boils down to only a handful of code lines. First you open the process with `PROCESS_DUP_HANDLE` access, which is the least amount of privilege required to duplicate a handle, and then call [`DuplicateHandle`](https://docs.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-duplicatehandle) on that process, telling the function you want to clone the handle saved in `sysHandle.Handle` (which is the interesting handle we retrieved before) and save it into the current process in the `clonedHandle` variable.
 
 In this way our process is now in control of the privileged handle and we can use it to spawn a new process, spoofing its parent as the privileged process the handle points to, thus making the new process inherit its security context and getting, for example, a command shell.
 ```c++
@@ -345,7 +345,8 @@ Let's see it in action 😊
 [![poc gif](/img/handles5.gif)](/img/handles5.gif)
 
 Some notes:
-- Dronesec used `NtQueryObject` to find the process name associated with the kernel object. I don't find it feasible for a large number of handles as calling this would slow down a lot the process of matching addresses with handles
+- I later noticed Dronesec used [`NtQueryObject`](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryobject) to find the process name associated with the kernel object. I don't find it feasible for a large number of handles as calling this would slow down a lot the process of matching addresses with handles
+- Of course, if the medium integrity process we want to attach to in order to clone the privileged handle runs in the context of another user, we can't exploit it as we'd need SeDebugPrivilege
 - I voluntarily left out the thread and token implementation of the exploit to the reader as an exercise 😉
 
 We are planning on releasing this tool, UpperHandler, as soon as we see fit. Stay tuned, last out!
