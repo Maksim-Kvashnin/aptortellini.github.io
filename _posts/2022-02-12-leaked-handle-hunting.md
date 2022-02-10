@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Gaining the upper hand(le)	
+title: 🇬🇧 Gaining the upper hand(le)	
 subtitle: Hunting for privilege escalations and UAC bypasses by looking for leaked handles in unprivileged processes
 image: /img/tortellindows.png
 published: true
