@@ -7,7 +7,7 @@ published: true
 author:
 - last
 ---
-[![tortellino windows](img/tortellindows.png)](img/tortellindows.png)
+[![tortellino windows](/img/tortellindows.png)](/img/tortellindows.png)
 
 ### TL;DR
 There are some situations where processes with high or SYSTEM integrity request handles to privileged processes/threads/tokens and then spawn lower integrity processes. If these handles are sufficiently powerful, of the right type and are inherited by the child process, we can clone them from another process and then abuse them to escalate privileges and/or bypass UAC. In this post we will learn how to look for and abuse this kind of vulnerability.
@@ -27,7 +27,7 @@ This process is somewhat convoluted, the steps we will go through are more or le
 4. Filter out the handles held by process with integrity greater than medium - we can’t attach to them unless we got SeDebugPrivilege, which defeats the purpose of this article
 5. Clone the remaining handles and import them into our process and try to abuse them to escalate privileges (or at least bypass UAC)
 
-[![ven diagram](img/handlesven.jpg)](img/handlesven.jpg)
+[![ven diagram](/img/handlesven.jpg)](/img/handlesven.jpg)
 
 Granted, it’s pretty unlikely we will be finding a ton of these on a pristine Windows machine, so to get around that I will be using a vulnerable application I written specifically for this purpose, though you never know what funny stuff administrators end up installing on their boxes...
 
@@ -67,7 +67,7 @@ Similar things happen when you call other functions such as `OpenThread` and `Op
 #### Viewing handles
 As we introduced before, handles are essentially indexes of a table. Each entry contains, among other things, the address of the object the handle refers to and the access level of the handle. We can view this information using tools such as Process Explorer or Process Hacker:
 
-[![handles 1](img/handles1.png)](img/handles1.png)
+[![handles 1](/img/handles1.png)](/img/handles1.png)
 
 From this Process Explorer screenshot we can gain a few information:
 - Red box: the type of object the handle refers to;
@@ -137,11 +137,11 @@ As you can see from the code, the variable `handle` which is a structure of type
 
 Let's run the aforementioned code and see its output:
 
-![listing handles with c++](/img/handles2.png)
+[![listing handles with c++](/img/handles2.png)](/img/handles2.png)
 
 In this excerpt we are seeing 3 handles that process with PID 4 (which is the System process on any Windows machine) has currently open. All of these handles refer to kernel objects of type process (as we can deduce from the `0x7` value of the object type), each with its own kernelspace address, but only the first one is a privileged handle, as you can deduce from its value, `0x1fffff`, which is what `PROCESS_ALL_ACCESS` translates to. Unluckily, in my research I have found no straightforward way to directly extract the PID of the process pointed to by the `ObjectAddress` member of the `SYSTEM_HANDLE` struct. We will see later a clever trick to circumvent this problem, but for now let's check which process it is using Process Explorer.
 
-![seeing the process with procexp](/img/handles3.png)
+[![seeing the process with procexp](/img/handles3.png)](/img/handles3.png)
 
 As you can see, the handle with value `0x828` is of type process and refers to the process `services.exe`. Both the object address and granted access check out as well and if you look to the right of the image you will see that the decoded access mask shows `PROCESS_ALL_ACCESS`, as expected.
 
@@ -342,7 +342,7 @@ CloseHandle(pinfo.hThread);
 
 Let's see it in action 😊
 
-![poc gif](/img/handles5.gif)
+[![poc gif](/img/handles5.gif)](/img/handles5.gif)
 
 Some notes:
 - Dronesec used `NtQueryObject` to find the process name associated with the kernel object. I don't find it feasible for a large number of handles as calling this would slow down a lot the process of matching addresses with handles
