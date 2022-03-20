@@ -17,14 +17,14 @@ Salute compagni d'armi, qui è di nuovo [last](https://twitter.com/last0x00) a i
 
 Essenzialmente quello a cui miriamo è capire se e come possiamo cercare in maniera automatizzata processi non privilegiati (ossia a integrità media) che detengono handle verso risorse pregiate come processi ad alta integrità (anche noti come processi elevati), processi SYSTEM o thread appartenenti ai processi menzionati. A seguito di ciò dobbiamo assicurarci di poter aprire i processi non privilegiati in questione, clonare gli handle di interesse e infine sfruttarli per elevare i nostri privilegi. Vediamo rapidamente i requisiti per il tool che andremo a scrivere:
 1. Deve eseguire a media integrità
-2. Il SeDebugPrivilege non deve essere presente nel token del processo (normalmente non è presente nei token a media integrità in ogni caso)
+2. Il `SeDebugPrivilege` non deve essere presente nel token del processo (normalmente non è presente nei token a media integrità in ogni caso)
 3. Non può sfruttare bypass di UAC in quanto deve funzionare anche per utenti non amministratori
 
 Il processo è abbastanza complesso, gli step che seguiremo saranno i seguenti:
 1. Enumerare tutti gli handle aperti in tutti i processi (tramite [`NtQuerySystemInformation`](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntquerysysteminformation))
 2. Filtrare gli handle non interessanti - per il momento ci focalizzeremo solo sugli handle verso i processi, i token e i thread, in quanto sono quelli più facili da sfruttare
 3. Filtrare gli handle che puntano a processi/thread/token a integrità inferiore a quella alta
-4. Filtrare gli handle detenuti da processi con integrità superiore a media in quanto non possiamo agganciarci a questi senza il SeDebugPrivilege
+4. Filtrare gli handle detenuti da processi con integrità superiore a media in quanto non possiamo agganciarci a questi senza il `SeDebugPrivilege`
 5. Filtrare gli handle che non garantiscono un livello di accesso alla risorsa sufficiente
 6. Verificare che siano rimasti handle (che quindi possono essere sfruttati per fare privilege escalation) ed eventualmente sfruttarli per elevare i nostri privilegi
 
