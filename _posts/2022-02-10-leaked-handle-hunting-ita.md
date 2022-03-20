@@ -1,7 +1,7 @@
 ---
 layout: post
 title: 🇮🇹 Gaining the upper hand(le)	
-subtitle: Come trovare privilege escalation e bypass di UAC tramite leak di handle
+subtitle: Come trovare privilege escalation e bypass di UAC tramite leak di handle privilegiati
 image: /img/tortellindows.png
 published: true
 author:
@@ -13,7 +13,7 @@ author:
 Su Windows, una condizione che può verificarsi è quella in cui processi ad altà integrità (anche noti come processi elevati) o processi SYSTEM possono avere handle a oggetti del kernel come altri processi/thread/token e si trovano successivamente in condizione di generare processi figli a media integrità. Se questi oggetti citati sono privilegiati (ad esempio sono a loro volta processi elevati/SYSTEM) e vengono ereditati dal processo figlio, si verifica una situazione in cui un processo a media integrità detiene un handle a una risorsa privilegiata e, se tale handle viene clonato e adeguatamente sfruttato, ciò può portare a privilege escalation. In questo post vedremo come ricercare in maniera automatizzata tali situazioni e come sfruttarle per elevare i propri privilegi o aggirare misure di sicurezza come UAC.
 
 ### Introduzione
-Saluti compagni d'armi, qui è di nuovo [last](https://twitter.com/last0x00) a infastidirvi. Ultimamente, insieme ai compagni di sventura degli [Advanced Persistent Tortellini](https://aptw.tf/about), mi sono messo alla ricerca di un tipo particolare vulnerabilità che si può trovare su applicativi per Windows e che raramente viene discusso: i leak di handle privilegiati. Notando l'assenza di risorse che approfondiscano l'argomento, abbiamo deciso di scrivere (in [realtà tradurre](https://aptw.tf/2022/02/10/leaked-handle-hunting.html)) questo post.
+Salute compagni d'armi, qui è di nuovo [last](https://twitter.com/last0x00) a infastidirvi. Ultimamente, insieme ai compagni di sventura degli [Advanced Persistent Tortellini](https://aptw.tf/about), mi sono messo alla ricerca di un tipo particolare vulnerabilità che si può trovare su applicativi per Windows e che raramente viene discusso: i leak di handle privilegiati. Notando l'assenza di risorse che approfondiscano l'argomento, abbiamo deciso di scrivere (in [realtà tradurre](https://aptw.tf/2022/02/10/leaked-handle-hunting.html)) questo post.
 
 Essenzialmente quello a cui miriamo è capire se e come possiamo cercare in maniera automatizzata processi non privilegiati (ossia a integrità media) che detengono handle verso risorse pregiate come processi ad alta integrità (anche noti come processi elevati), processi SYSTEM o thread appartenenti ai processi menzionati. A seguito di ciò dobbiamo assicurarci di poter aprire i processi non privilegiati in questione, clonare gli handle di interesse e infine sfruttarli per elevare i nostri privilegi. Vediamo rapidamente i requisiti per il tool che andremo a scrivere:
 1. Deve eseguire a media integrità
