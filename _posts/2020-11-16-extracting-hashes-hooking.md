@@ -343,4 +343,4 @@ Alright, now that everything is ready we can proceed to compile the DLL and inje
 It works! This time I tried to authenticate as the user "last", whose password is, awkwardly, "last".  You can see that even though the wrong password was input for the user, the true password hash has been written to `C:\credentials`.
 That's all folks, it was a nice ride. You can find [the complete code for HppDLL on my GitHub](https://github.com/last-byte/HppDLL).  
 
-last out!
+_last out!_
