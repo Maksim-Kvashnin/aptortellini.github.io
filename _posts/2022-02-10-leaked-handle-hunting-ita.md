@@ -384,7 +384,7 @@ Alcune note:
 
 Questo è quanto per oggi, alla prossima.
 
-last out!
+_last out!_
 
 ## Referenze
 - [https://rayanfam.com/topics/reversing-windows-internals-part1/](https://rayanfam.com/topics/reversing-windows-internals-part1/)
