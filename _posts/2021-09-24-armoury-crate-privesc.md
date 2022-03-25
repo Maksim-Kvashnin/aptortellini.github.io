@@ -95,4 +95,6 @@ We have two culprits here:
 - 2021/09/24: ASUS confirms the vulnerability has been fixed in version 4.2.10 of the service;
 - 2021/09/27: MITRE assigns [CVE-2021-40981](https://cve.report/CVE-2021-40981) to this vulnerability;
 
-Kudos to ASUS for the quick response and professionalism in dealing with the problem! That's all for today lads, last out!
+Kudos to ASUS for the quick response and professionalism in dealing with the problem! That's all for today lads, until next time! 
+
+_last out!_
