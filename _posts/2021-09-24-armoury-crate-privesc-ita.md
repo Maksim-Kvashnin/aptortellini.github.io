@@ -103,4 +103,4 @@ In questo caso abbiamo due "colpevoli":
 
 Kudos ad ASUS per la celerità e professionalità nella gestione della vulnerabilità. È tutto per oggi e alla prossima!
 
-last, out.
+_last out!_
