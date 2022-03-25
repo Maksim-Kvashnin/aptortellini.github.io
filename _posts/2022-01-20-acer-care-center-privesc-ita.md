@@ -35,4 +35,5 @@ Acer ha rilasciato una patch di sicurezza per Acer Care Center il 27 dicembre 20
 - 2022/01/20: [l'advisory relativa alla vulnerabilità](https://community.acer.com/en/kb/articles/14757-acer-care-center-requires-an-update-to-resolve-a-security-vulnerability) e questo post vengono resi pubblici;
 
 Questo è quanto per oggi, alla prossima!
-last, out!
+
+_last out!_
