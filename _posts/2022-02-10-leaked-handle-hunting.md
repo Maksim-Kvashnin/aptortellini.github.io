@@ -349,7 +349,9 @@ Some notes:
 - Of course, if the medium integrity process we want to attach to in order to clone the privileged handle runs in the context of another user, we can't exploit it as we'd need SeDebugPrivilege
 - I voluntarily left out the thread and token implementation of the exploit to the reader as an exercise 😉
 
-We are planning on releasing this tool, UpperHandler, as soon as we see fit. Stay tuned, last out!
+We are planning on releasing this tool, UpperHandler, as soon as we see fit. Stay tuned! 
+
+_last out!_
 
 ## References
 - [https://rayanfam.com/topics/reversing-windows-internals-part1/](https://rayanfam.com/topics/reversing-windows-internals-part1/)
