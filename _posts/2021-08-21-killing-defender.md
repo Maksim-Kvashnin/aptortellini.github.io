@@ -309,6 +309,12 @@ In the demo you can notice a few things:
   
 Note: Defender's icon became yellow in the lower right because it was unhappy with me disabling automatic sample submission, it's unrelated to unDefender.
 
+EDIT: as of 25/02/2022 this technique seems to have been fixed by MS!
+
+This is everything for today, until next time!
+
+_last out!_
+
 ### References
 1. [https://twitter.com/jonasLyk/status/1378143191279472644](https://twitter.com/jonasLyk/status/1378143191279472644)
 2. [https://googleprojectzero.blogspot.com/2016/02/the-definitive-guide-on-win32-to-nt.html](https://googleprojectzero.blogspot.com/2016/02/the-definitive-guide-on-win32-to-nt.html)
