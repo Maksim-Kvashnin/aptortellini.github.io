@@ -16,6 +16,7 @@ Originally started as a joke between [Her0](https://twitter.com/Her0_IT), [last]
 - Edoardo [@knifesec](https://twitter.com/knifesec) Novello
 - Paolo [@Void_sec](https://twitter.com/Void_sec) Stagno
 - Paolo [@CaminatiPaolo](https://twitter.com/CaminatiPaolo) Caminati
+- Petar [@ipSlav](https://twitter.com/ipSlav) Pranic
 - Federico [@last0x00](https://twitter.com/last0x00) Lagrasta
 
 ## WIN+X - A - ⬅️ - ENTER
