@@ -32,6 +32,11 @@ layout: default
               {{ post.title | escape }}
             </h3>
           </a>
+
+{% if post.author %}
+	          <h5>Author: {{ post.author | escape }}</h5>
+	        {% endif %}
+
           {% if post.subtitle %}
 	          <h4>{{ post.subtitle | escape }}</h4>
 	        {% endif %}
