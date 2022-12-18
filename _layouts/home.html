@@ -34,7 +34,7 @@ layout: default
           </a>
 
 {% if post.author %}
-	          <h5>Author: {{ post.author | escape }}</h5>
+	          <h5>Author: {%- for author in post.author -%}{{ author | escape }} {%- endfor -%}</h5>
 	        {% endif %}
 
           {% if post.subtitle %}
